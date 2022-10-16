@@ -38,6 +38,8 @@ namespace nn {
 			: neuronCount(count), layerName(name) {
 			inputsPerNeuron = 0;
 			outputsPerNeuron = 0;
+
+			if (count == 0) throw out_of_range("Invalid neuron count, cannot be zero.");
 		}
 
 		void init(NeuronLayer* prev, NeuronLayer* next, ActivationFunction func) {
@@ -61,6 +63,8 @@ namespace nn {
 		}
 
 		void execute(double* input, int inputLength, double* output, int outputLength) {
+			if (inputsPerNeuron == 0 || outputsPerNeuron == 0) throw out_of_range("Invalid input/output count, cannot be zero. Likely did not init.");
+
 			if (input == NULL) throw invalid_argument("Input layer received null input pointer.");
 			if (output == NULL) throw invalid_argument("Input layer received null output pointer.");
 
