@@ -11,10 +11,10 @@ namespace nn {
 
 	class Neuron {
 	private:
-		ActivationFunction func;
+		ActivationFunction	func;
 
-		vector<double> weightIn;
-		vector<double> weightOut;
+		vector<double>		weightIn;
+		vector<double>		weightOut;
 
 	public:
 		Neuron(ActivationFunction func, vector<double> weightIn, vector<double> weightOut)

@@ -8,11 +8,11 @@ namespace nn {
 	private:
 		vector<Neuron> neurons;
 
-		int inputsPerNeuron; // input per neuron
-		int outputsPerNeuron; // output per neuron
+		int		inputsPerNeuron; // input per neuron
+		int		outputsPerNeuron; // output per neuron
 
-		int neuronCount;
-		string layerName;
+		int		neuronCount;
+		string	layerName;
 
 	private:
 		inline void initNeurons(ActivationFunction func) {

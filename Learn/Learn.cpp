@@ -34,9 +34,8 @@ int main()
 				nn::NeuronLayer layer2(3, "layer2");
 				nn::NeuronLayer output(1, "out");
 
-				vector<nn::NeuronLayer> layers = { layer1, layer2 };
-
-				nn::NeuralNetwork net(&input, &output, layers);
+				vector<nn::NeuronLayer> layers = { input, layer1, layer2, output };
+				nn::NeuralNetwork net(layers);
 
 				nn::SupervisedNetworkTrainer trainer;
 				//trainer.epochs

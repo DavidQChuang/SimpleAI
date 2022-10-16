@@ -7,8 +7,10 @@ namespace nn {
 
 	class SupervisedNetworkTrainer {
 	private:
-		int epochs;
-		double minError;
+		int				epochTarget;
+		double			errorTarget;
+		double			learningRate;
+		TrainingType	trainingType;
 
 		double cost(int n, double* nnEstimate, double* actual) {
 			double sum = 0;
@@ -20,7 +22,21 @@ namespace nn {
 			return 1 / n * sum;
 		}
 
-	public:
+		// 
+		double deltaW(double target, double result, double input, double adalineDeriv) {
 
+			// rate * (target - result) * input
+			switch (trainingType) {
+			case Perceptron:
+				return learningRate * (target - result) * input;
+			case Adaline:
+				return learningRate * (target - result) * input * adalineDeriv;
+			}
+		}
+
+	public:
+		void train() {
+			
+		}
 	};
 };
