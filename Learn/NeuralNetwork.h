@@ -4,7 +4,7 @@
 #include <string>
 
 #include "nn/Neuron.h"
-#include "nn/NeuralNetworkTrainer.h"
+#include "nn/NeuronLayer.h"
 
 using namespace std;
 
@@ -16,8 +16,15 @@ namespace nn {
 		vector<NeuronLayer> hiddenLayers;
 
 	public:
-		NeuralNetwork(NeuronLayer* input, NeuronLayer* output, vector<NeuronLayer> hiddenLayers)
-			: input(input), output(output), hiddenLayers(hiddenLayers) { }
+		NeuralNetwork(NeuronLayer* inputLayer, NeuronLayer* outputLayer, vector<NeuronLayer> hiddenLayersList) {
+			input = inputLayer;
+			output = outputLayer;
+			hiddenLayers = hiddenLayersList;
+
+			if (input == NULL || output == NULL) {
+				throw invalid_argument("The neural network cannot have null input or output layers.");
+			}
+		}
 
 		void init(ActivationFunction func) {
 			if (input == output) {
@@ -68,63 +75,44 @@ namespace nn {
 			output->display();
 		}
 
-		NeuralNetwork train(NetworkTrainer trainer) {
+		double* execute() {
+			int count = 0;
+			int finalOutputOffset = 0;
 
-			return *this;
-		}
-	};
-	
-	class NeuronLayer {
-	private:
-		vector<Neuron> neurons;
+			if (input == output) {
+				count += input->expectedInputs();
+				finalOutputOffset = count;
+				count += input->expectedOutputs();
+			}
+			else {
+				int prevOutputs;
 
-		int inputPerNeuron; // input per neuron
-		int outputPerNeuron; // output per neuron
+				count = count + input->expectedInputs();
+				count = count + (prevOutputs = input->expectedOutputs());
 
-		int neuronCount;
-		string layerName;
+				for (int i = 0; i < hiddenLayers.size(); i++) {
+					NeuronLayer layer = hiddenLayers[i];
 
-	public:
-		NeuronLayer(int count, string name)
-			: neuronCount(count), layerName(name) {}
+					if (prevOutputs != layer.expectedInputs())
+						throw out_of_range("Expected input of layer did not match expected error of previous layer.");
 
-		void init(NeuronLayer* prev, NeuronLayer* next, ActivationFunction func) {
-			if (prev == NULL)	inputPerNeuron = 1;
-			else				inputPerNeuron = prev->neuronCount;
-
-			if (next == NULL)	outputPerNeuron = 1;
-			else				outputPerNeuron = prev->neuronCount;
-
-			for (int i = 0; i < neuronCount; i++) {
-				vector<double> inputWeights;
-				for (int i = 0; i < inputPerNeuron; i++) {
-					inputWeights.push_back(0);
+					count = count + (prevOutputs = layer.expectedOutputs());
 				}
 
-				vector<double> outputWeights;
-				for (int i = 0; i < outputPerNeuron; i++) {
-					outputWeights.push_back(0);
-				}
-
-				neurons.push_back(Neuron(func, inputWeights, outputWeights));
+				if (prevOutputs != output->expectedInputs())
+					throw out_of_range("Expected input of output layer did not match expected error of previous layer.");
+				
+				finalOutputOffset = count;
+				count += output->expectedOutputs();
 			}
-		}
 
-		int neuronCount() {
-			return neuronCount;
-		}
+			double* buffer = new double[count];
 
-		string name() {
-			return layerName;
-		}
+			if (input == output) {
 
-		void display() {
-			for (int i = 0; i < neuronCount; i++) {
-				Neuron n = neurons[i];
-
-				printf("\nNeuron #%s\n", i);
-				n.display();
 			}
+
+			return buffer + finalOutputOffset;
 		}
 	};
 }

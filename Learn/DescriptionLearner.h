@@ -24,7 +24,7 @@ namespace ml {
 			this->data = data;
 		}
 
-		int execute() {
+		void execute() {
 			for (;;) {
 				printf("(L)earn, (D)isplay, or (Q)uit? ");
 				string ch;

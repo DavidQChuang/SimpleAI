@@ -134,7 +134,9 @@
     <ClInclude Include="DLearnerData.h" />
     <ClInclude Include="DescriptionLearner.h" />
     <ClInclude Include="NeuralNetwork.h" />
-    <ClInclude Include="Neuron.h" />
+    <ClInclude Include="nn\NeuralNetworkTrainer.h" />
+    <ClInclude Include="nn\Neuron.h" />
+    <ClInclude Include="nn\NeuronLayer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

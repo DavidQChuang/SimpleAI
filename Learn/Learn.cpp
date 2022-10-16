@@ -5,14 +5,16 @@
 #include <iostream>
 #include "DescriptionLearner.h"
 #include "DLearnerListData.h"
+
 #include "NeuralNetwork.h"
+#include "nn/NeuralNetworkTrainer.h"
 
 int main()
 {
 	printf("Choose a program:\n");
-	printf("\t1: DescriptionLearner");
-	printf("\t2: NeuralNetwork");
-	printf("\n");
+	printf("  1: DescriptionLearner\n");
+	printf("  2: NeuralNetwork\n");
+	printf("? ");
 
 	string val;
 	for (;;) {
@@ -28,13 +30,16 @@ int main()
 				break;
 			case '2':
 				nn::NeuronLayer input(2, "in");
-				vector<nn::NeuronLayer> hiddenLayers{
-					nn::NeuronLayer(3, "layer 1"),
-					nn::NeuronLayer(3, "layer 2"),
-				};
+				nn::NeuronLayer layer1(3, "layer1");
+				nn::NeuronLayer layer2(3, "layer2");
 				nn::NeuronLayer output(1, "out");
 
-				nn::NeuralNetwork net(&input, &output, hiddenLayers);
+				vector<nn::NeuronLayer> layers = { layer1, layer2 };
+
+				nn::NeuralNetwork net(&input, &output, layers);
+
+				nn::SupervisedNetworkTrainer trainer;
+				//trainer.epochs
 
 				break;
 			}

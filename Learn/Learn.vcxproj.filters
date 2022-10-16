@@ -32,14 +32,20 @@
     <ClInclude Include="NeuralNetwork.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Neuron.h">
-      <Filter>Header Files\nn</Filter>
-    </ClInclude>
     <ClInclude Include="DLearnerData.h">
       <Filter>Header Files\ml</Filter>
     </ClInclude>
     <ClInclude Include="DLearnerListData.h">
       <Filter>Header Files\ml</Filter>
+    </ClInclude>
+    <ClInclude Include="nn\NeuralNetworkTrainer.h">
+      <Filter>Header Files\nn</Filter>
+    </ClInclude>
+    <ClInclude Include="nn\Neuron.h">
+      <Filter>Header Files\nn</Filter>
+    </ClInclude>
+    <ClInclude Include="nn\NeuronLayer.h">
+      <Filter>Header Files\nn</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -18,28 +18,39 @@ namespace nn {
 
 	public:
 		Neuron(ActivationFunction func, vector<double> weightIn, vector<double> weightOut)
-			: func(func), weightIn(weightIn), weightOut(weightOut) {} 
+			: func(func), weightIn(weightIn), weightOut(weightOut) {}
 
-		double activationFunc(double x) {
+		double activationFunc(double v) {
 			switch (func) {
 			case Step:
-				return x < 0 ? 0 : 1;
+				return v < 0 ? 0 : 1;
 				break;
 			case Linear:
-				return x;
+				return v;
 			case Siglog:
-				return 1 / (1 + exp(-x));
+				return 1 / (1 + exp(-v));
 			case Hypertan:
-				return (1 - exp(-x)) / (1 + exp(-x));
+				return (1 - exp(-v)) / (1 + exp(-v));
 			}
+
+			throw invalid_argument("There is no function for this activation function type.");
 		}
 
-		double derivActivationFunc(double x) {
-			
+		double derivActivationFunc(double v) {
+			switch (func) {
+			case Linear:
+				return 1;
+			case Siglog:
+				return v * (1 - v);
+			case Hypertan:
+				return 1 / pow(cosh(v), 2);
+			}
+
+			throw invalid_argument("There is no derivative for this activation function type.");
 		}
 
-		vector<double> weightIn() { return weightIn; }
-		vector<double> weightOut() { return weightOut; }
+		vector<double> weightsIn() { return weightIn; }
+		vector<double> weightsOut() { return weightOut; }
 
 		void display() {
 			vector<double>::iterator it;
@@ -47,14 +58,14 @@ namespace nn {
 			printf("Input weights:\n[");
 			for (it = weightIn.begin(); it < weightIn.end(); it++) {
 				double v = *it;
-				printf("%s, ", to_string(v));
+				printf("%s, ", to_string(v).c_str());
 			}
 			printf("]\n");
 
 			printf("Output weights:\n");
 			for (it = weightOut.begin(); it < weightOut.end(); it++) {
 				double v = *it;
-				printf("%s, ", to_string(v));
+				printf("%s, ", to_string(v).c_str());
 			}
 			printf("]\n");
 
