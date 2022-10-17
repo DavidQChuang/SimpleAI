@@ -17,12 +17,22 @@ namespace nn {
 		int outputs;
 
 	public:
-		NeuralNetwork(vector<NeuronLayer> layers) {
-			nnLayers = layers;
+		NeuralNetwork(vector<NeuronLayer> getLayers) {
+			nnLayers = getLayers;
 
 			if (nnLayers.size() == 0) {
 				throw invalid_argument("The neural network cannot have zero layers.");
 			}
+		}
+		NeuralNetwork(const NeuralNetwork& other) {
+			for (int i = 0; i < other.nnLayers.size(); i++) {
+				NeuronLayer layerCopy = NeuronLayer(other.nnLayers[i]);
+				nnLayers.push_back(layerCopy);
+			}
+
+			ioBufferSize = other.ioBufferSize;
+			inputs = other.inputs;
+			outputs = other.outputs;
 		}
 
 		void init(ActivationFunction func) {
@@ -107,22 +117,29 @@ namespace nn {
 			return outputs;
 		}
 
-		int expectedBufferSize() {
+		size_t expectedBufferSize() {
 			return ioBufferSize;
+		}
+
+		vector<NeuronLayer> getLayers() {
+			return vector<NeuronLayer>(nnLayers);
 		}
 
 		double* execute(double* inputs, size_t inLength) {
 			double* buffer = new double[ioBufferSize];
 			memcpy(buffer, inputs, inLength);
 
-			return executeToIOArray(buffer, ioBufferSize);
+			return executeToIOArray(buffer, inLength, ioBufferSize);
 		}
 
-		double* executeToIOArray(double* buffer, size_t bufferSize) {
+		double* executeToIOArray(double* buffer, size_t inLength, size_t bufferSize) {
 			double* inPtr = buffer;
 
 			int remaining = ioBufferSize;
 			int lastOutLen = 0;
+
+			if (inLength != nnLayers[0].expectedInputs())
+				throw invalid_argument("Expected input size did not match given input size.");
 
 			if (ioBufferSize != bufferSize)
 				throw invalid_argument("Expected buffer size did not match given buffer size.");

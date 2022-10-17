@@ -19,6 +19,15 @@ namespace nn {
 	public:
 		Neuron(ActivationFunction func, vector<double> weightIn, vector<double> weightOut)
 			: func(func), weightIn(weightIn), weightOut(weightOut) {}
+		Neuron(const Neuron& other) {
+			func = other.func;
+			for (int i = 0; i < other.weightIn.size(); i++) {
+				weightIn.push_back(other.weightIn[i]);
+			}
+			for (int i = 0; i < weightIn.size(); i++) {
+				weightOut.push_back(other.weightOut[i]);
+			}
+		}
 
 		double activationFunc(double v) {
 			switch (func) {
