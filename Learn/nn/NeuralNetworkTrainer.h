@@ -3,8 +3,8 @@
 namespace nn {
 	class PerceptronTrainer : public SupervisedNetworkTrainer {
 	private:
-		double deltaW(double target, double result, double input) {
-			return learningRate * (target - result) * input;
+		double deltaW(double error, double input) {
+			return learningRate * error * input;
 		}
 
 	public:
@@ -13,10 +13,31 @@ namespace nn {
 			if (network.getLayers().size() != 0)
 				throw invalid_argument("Can only train networks with 1 layer.");
 			
-			double *buffer, *networkOutputs;
-			executeNetwork(network, buffer, networkOutputs, inputs, inLength);
+			double *buffer, *outPtr;
 
+			auto layer = network.getLayers()[0];
+			auto neurons = layer.getNeurons();
 
+			if (outLength != neurons.size())
+				throw invalid_argument("Can only train networks with as many outputs as neurons.");
+
+			for (int e = 0; e < epochTarget; e++) {
+				executeNetwork(network, buffer, outPtr, inputs, inLength);
+
+				double mse = cost(neurons.size(), outPtr, outputs);
+				printf("Mean Standard Error: [ %s ]", to_string(mse).c_str());
+
+				if (mse < errorTarget) break;
+
+				for (int i = 0; i < neurons.size(); i++) {
+					auto neuron = neurons[i];
+
+					double prevW = neuron.weightsOut()[0];
+					double error = outputs[i] - outPtr[i]; // target - result
+
+					neuron.weightsOut()[0] = prevW + deltaW(error, prevW);
+				}
+			}
 		}
 	};
 
@@ -55,6 +76,8 @@ namespace nn {
 			memcpy(buffer, inputs, inLength);
 			networkOutputs = network.executeToIOArray(buffer, inLength, bufferSize);
 		}
+
+		//bool 
 
 	public:
 		SupervisedNetworkTrainer(double learnRate = 0.1, double error = 0.002, int epochs = 1000) {

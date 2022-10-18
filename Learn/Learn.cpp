@@ -29,15 +29,15 @@ int main()
 				desc.execute();
 				break;
 			case '2':
-				nn::NeuronLayer input(2, "in");
-				nn::NeuronLayer layer1(3, "layer1");
+				nn::NeuronLayer input(4, "in");
+				/*nn::NeuronLayer layer1(3, "layer1");
 				nn::NeuronLayer layer2(3, "layer2");
-				nn::NeuronLayer output(1, "out");
+				nn::NeuronLayer output(1, "out");*/
 
-				vector<nn::NeuronLayer> getLayers = { input, layer1, layer2, output };
+				vector<nn::NeuronLayer> getLayers = { input };
 				nn::NeuralNetwork net(getLayers);
 
-				nn::SupervisedNetworkTrainer trainer;
+				nn::PerceptronTrainer trainer;
 				//trainer.epochs
 
 				break;
