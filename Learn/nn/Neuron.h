@@ -24,7 +24,7 @@ namespace nn {
 			for (int i = 0; i < other.weightIn.size(); i++) {
 				weightIn.push_back(other.weightIn[i]);
 			}
-			for (int i = 0; i < weightIn.size(); i++) {
+			for (int i = 0; i < other.weightOut.size(); i++) {
 				weightOut.push_back(other.weightOut[i]);
 			}
 		}
@@ -61,20 +61,38 @@ namespace nn {
 		vector<double> weightsIn() { return weightIn; }
 		vector<double> weightsOut() { return weightOut; }
 
+		void setWeightIn(int i, double weight) {
+			weightIn[i] = weight;
+		}
+
+		void setWeightOut(int i, double weight) {
+			weightOut[i] = weight;
+		}
+
 		void display() {
 			vector<double>::iterator it;
 
 			printf("Input weights:\n[");
-			for (it = weightIn.begin(); it < weightIn.end(); it++) {
+			for (it = weightIn.begin(); it < weightIn.end();) {
 				double v = *it;
-				printf("%s, ", to_string(v).c_str());
+				printf(to_string(v).c_str());
+
+				if (++it < weightIn.end()) {
+					printf(", ");
+				}
+				else break;
 			}
 			printf("]\n");
 
-			printf("Output weights:\n");
-			for (it = weightOut.begin(); it < weightOut.end(); it++) {
+			printf("Output weights:\n[");
+			for (it = weightOut.begin(); it < weightOut.end();) {
 				double v = *it;
-				printf("%s, ", to_string(v).c_str());
+				printf(to_string(v).c_str());
+
+				if (++it < weightOut.end()) {
+					printf(", ");
+				}
+				else break;
 			}
 			printf("]\n");
 

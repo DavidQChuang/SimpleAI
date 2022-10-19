@@ -38,7 +38,7 @@
     <ClInclude Include="DLearnerListData.h">
       <Filter>Header Files\ml</Filter>
     </ClInclude>
-    <ClInclude Include="nn\NeuralNetworkTrainer.h">
+    <ClInclude Include="nn\SupervisedNetworkTrainer.h">
       <Filter>Header Files\nn</Filter>
     </ClInclude>
     <ClInclude Include="nn\Neuron.h">
@@ -46,6 +46,12 @@
     </ClInclude>
     <ClInclude Include="nn\NeuronLayer.h">
       <Filter>Header Files\nn</Filter>
+    </ClInclude>
+    <ClInclude Include="PerceptronTrainer.h">
+      <Filter>Header Files\nn</Filter>
+    </ClInclude>
+    <ClInclude Include="format.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

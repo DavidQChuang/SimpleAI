@@ -49,37 +49,37 @@ namespace nn {
 				bufSize += input.expectedInputs();
 				bufSize += input.expectedOutputs();
 			}
-			else if(nnLayers.size() > 2) {
+			else if(nnLayers.size() >= 2) {
 				vector<NeuronLayer>::iterator it;
 
-				NeuronLayer input = nnLayers.front();
-				NeuronLayer output = nnLayers.back();
+				NeuronLayer* input = &nnLayers.front();
+				NeuronLayer* output = &nnLayers.back();
 
-				NeuronLayer* prev = &input;
+				NeuronLayer* prev = input;
 				int prevOutputs;
 
 				// calculate output buffer size
-				bufSize = bufSize + input.expectedInputs();
-				bufSize = bufSize + (prevOutputs = input.expectedOutputs());
+				input->init(NULL, &nnLayers[1], func);
+				bufSize = bufSize + input->expectedInputs();
+				bufSize = bufSize + (prevOutputs = input->expectedOutputs());
 
 				// init all layers
-				input.init(NULL, &nnLayers[1], func);
 				for (it = nnLayers.begin() + 1; it < nnLayers.end() - 1; it++) {
 					NeuronLayer layer = *it;
 					layer.init(prev, &*(it + 1), func);
 					prev = &layer;
 
 					if (prevOutputs != layer.expectedInputs())
-						throw out_of_range("Expected input of layer did not match expected error of previous layer.");
+						throw out_of_range("Expected input of layer did not match expected output of previous layer.");
 
 					bufSize = bufSize + (prevOutputs = layer.expectedOutputs());
 				}
-				output.init(&*it, NULL, func);
+				output->init(&nnLayers[nnLayers.size() - 2], NULL, func);
 
-				if (prevOutputs != output.expectedInputs())
-					throw out_of_range("Expected input of output layer did not match expected error of previous layer.");
+				if (prevOutputs != output->expectedInputs())
+					throw out_of_range("Expected input of output layer did not match expected output of previous layer.");
 
-				bufSize += output.expectedOutputs();
+				bufSize += output->expectedOutputs();
 			}
 
 			inputs = nnLayers.front().expectedInputs();
@@ -88,11 +88,13 @@ namespace nn {
 		}
 
 		void display() {
+			printf("Expected in/out: %s/%s\n", to_string(inputs).c_str(), to_string(outputs).c_str());
+
 			if (nnLayers.size() == 1) {
 				printf("### INPUT LAYER ###\n");
 				nnLayers[0].display();
 			}
-			else if (nnLayers.size() > 2) {
+			else if (nnLayers.size() >= 2) {
 				vector<NeuronLayer>::iterator it;
 
 				printf("### INPUT LAYER ###\n");
@@ -127,14 +129,12 @@ namespace nn {
 
 		double* execute(double* inputs, size_t inLength) {
 			double* buffer = new double[ioBufferSize];
-			memcpy(buffer, inputs, inLength);
+			memcpy(buffer, inputs, inLength * sizeof(double));
 
 			return executeToIOArray(buffer, inLength, ioBufferSize);
 		}
 
 		double* executeToIOArray(double* buffer, size_t inLength, size_t bufferSize) {
-			double* inPtr = buffer;
-
 			int remaining = ioBufferSize;
 			int lastOutLen = 0;
 
@@ -144,15 +144,17 @@ namespace nn {
 			if (ioBufferSize != bufferSize)
 				throw invalid_argument("Expected buffer size did not match given buffer size.");
 
+			double* inPtr = buffer;
 			for (int i = 0; i < nnLayers.size(); i++) {
 				NeuronLayer layer = nnLayers[i];
 				int inLen = layer.expectedInputs();
 				int outLen = layer.expectedOutputs();
 
 				remaining -= inLen;
-				if (inLen < 0) throw out_of_range("Exceeded buffer capacity.");
+				if (remaining < 0) throw out_of_range("Exceeded buffer capacity.");
 
-				layer.execute(inPtr, inLen, inPtr + outLen, outLen);
+				layer.execute(inPtr, inLen, inPtr + inLen, outLen);
+				inPtr += inLen;
 				lastOutLen = outLen;
 			}
 

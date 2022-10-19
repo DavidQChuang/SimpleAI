@@ -2,6 +2,7 @@
 
 #include <vector>
 #include "Neuron.h"
+#include <random>
 
 namespace nn {
 	class NeuronLayer {
@@ -18,15 +19,15 @@ namespace nn {
 		inline void initNeurons(ActivationFunction func) {
 			neurons.clear();
 
-			for (int i = 0; i < neuronCount; i++) {
+			for (int n = 0; n < neuronCount; n++) {
 				vector<double> inputWeights;
 				for (int i = 0; i < mInputsPerNeuron; i++) {
-					inputWeights.push_back(0);
+					inputWeights.push_back((double)rand()  / RAND_MAX);
 				}
 
 				vector<double> outputWeights;
 				for (int i = 0; i < mOutputsPerNeuron; i++) {
-					outputWeights.push_back(0);
+					outputWeights.push_back((double)rand() / RAND_MAX);
 				}
 
 				neurons.push_back(Neuron(func, inputWeights, outputWeights));
@@ -66,17 +67,13 @@ namespace nn {
 			initNeurons(func);
 		}
 
-		size_t expectedInputs() {
+		int expectedInputs() {
 			return mInputsPerNeuron * neurons.size();
 		}
 
-		size_t expectedOutputs() {
-			return mInputsPerNeuron * neurons.size();
+		int expectedOutputs() {
+			return mOutputsPerNeuron * neurons.size();
 		}
-
-		int inputPerNeuron() { return mInputsPerNeuron; }
-
-		int outputsPerNeuron() { return mOutputsPerNeuron; }
 
 		vector<Neuron> getNeurons() {
 			return vector<Neuron>(neurons);
@@ -84,9 +81,13 @@ namespace nn {
 
 		void execute(double* input, int inputLength, double* output, int outputLength) {
 			if (mInputsPerNeuron == 0 || mOutputsPerNeuron == 0) throw out_of_range("Invalid input/output count, cannot be zero. Likely did not init.");
+			
+			if (neurons.size() != neuronCount) {
+				throw invalid_argument("Uninitialized layer.");
+			}
 
-			if (input == NULL) throw invalid_argument("Input layer received null input pointer.");
-			if (output == NULL) throw invalid_argument("Input layer received null output pointer.");
+			if (input == NULL) throw invalid_argument("Layer received null input pointer.");
+			if (output == NULL) throw invalid_argument("Layer received null output pointer.");
 
 			size_t neuronCount = neurons.size();
 
@@ -125,6 +126,11 @@ namespace nn {
 		}
 
 		void display() {
+			if (neurons.size() != neuronCount) {
+				printf("UNINITIALIZED LAYER OF SIZE %s", to_string(neuronCount).c_str());
+				return;
+			}
+
 			for (int i = 0; i < neuronCount; i++) {
 				Neuron n = neurons[i];
 
