@@ -17,17 +17,9 @@ namespace nn {
 		vector<double>		weightOut;
 
 	public:
+		Neuron() : Neuron(Step, vector<double>(), vector<double>()) {}
 		Neuron(ActivationFunction func, vector<double> weightIn, vector<double> weightOut)
 			: func(func), weightIn(weightIn), weightOut(weightOut) {}
-		Neuron(const Neuron& other) {
-			func = other.func;
-			for (int i = 0; i < other.weightIn.size(); i++) {
-				weightIn.push_back(other.weightIn[i]);
-			}
-			for (int i = 0; i < other.weightOut.size(); i++) {
-				weightOut.push_back(other.weightOut[i]);
-			}
-		}
 
 		double activationFunc(double v) {
 			switch (func) {
@@ -60,14 +52,6 @@ namespace nn {
 
 		vector<double> weightsIn() { return weightIn; }
 		vector<double> weightsOut() { return weightOut; }
-
-		void setWeightIn(int i, double weight) {
-			weightIn[i] = weight;
-		}
-
-		void setWeightOut(int i, double weight) {
-			weightOut[i] = weight;
-		}
 
 		void display() {
 			vector<double>::iterator it;

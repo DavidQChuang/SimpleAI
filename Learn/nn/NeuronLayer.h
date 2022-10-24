@@ -7,55 +7,21 @@
 namespace nn {
 	class NeuronLayer {
 	private:
-		vector<Neuron> neurons;
+		Neuron* neurons = nullptr;
 
-		int		mInputsPerNeuron; // input per neuron
-		int		mOutputsPerNeuron; // output per neuron
+		int		mInputsPerNeuron = 0; // input per neuron
+		int		mOutputsPerNeuron = 0; // output per neuron
 
-		int		neuronCount;
-		string	layerName;
-
-	private:
-		inline void initNeurons(ActivationFunction func) {
-			neurons.clear();
-
-			for (int n = 0; n < neuronCount; n++) {
-				vector<double> inputWeights;
-				for (int i = 0; i < mInputsPerNeuron; i++) {
-					inputWeights.push_back((double)rand()  / RAND_MAX);
-				}
-
-				vector<double> outputWeights;
-				for (int i = 0; i < mOutputsPerNeuron; i++) {
-					outputWeights.push_back((double)rand() / RAND_MAX);
-				}
-
-				neurons.push_back(Neuron(func, inputWeights, outputWeights));
-			}
-		}
+		int		neuronCount = 0;
+		string	layerName = "";
 
 	public:
 		NeuronLayer(int count, string name)
 			: neuronCount(count), layerName(name) {
-			mInputsPerNeuron = 0;
-			mOutputsPerNeuron = 0;
-
 			if (count == 0) throw out_of_range("Invalid neuron count, cannot be zero.");
 		}
-		NeuronLayer(const NeuronLayer& other) {
-			for (int i = 0; i < other.neurons.size(); i++) {
-				Neuron neuronCopy = Neuron(other.neurons[i]);
-				neurons.push_back(neuronCopy);
-			}
 
-			mInputsPerNeuron = other.mInputsPerNeuron;
-			mOutputsPerNeuron = other.mOutputsPerNeuron;
-
-			neuronCount = other.neuronCount;
-			layerName = other.layerName;
-		}
-
-		void init(NeuronLayer* prev, NeuronLayer* next, ActivationFunction func) {
+		void init(NeuronLayer* prev, NeuronLayer* next, ActivationFunction func, Neuron* neuronBuf) {
 			if (prev == NULL)	mInputsPerNeuron = 1;
 			else				mInputsPerNeuron = prev->neuronCount;
 
@@ -64,32 +30,41 @@ namespace nn {
 			//if (next == NULL)	outputsPerNeuron = 1;
 			//else				outputsPerNeuron = next->neuronCount;
 
-			initNeurons(func);
+			neurons = neuronBuf;
+			for (int n = 0; n < neuronCount; n++) {
+				vector<double> inputWeights;
+				for (int i = 0; i < mInputsPerNeuron; i++) {
+					inputWeights.push_back((double)rand() / RAND_MAX);
+				}
+
+				vector<double> outputWeights;
+				for (int i = 0; i < mOutputsPerNeuron; i++) {
+					outputWeights.push_back((double)rand() / RAND_MAX);
+				}
+
+				neurons[n] = Neuron(func, inputWeights, outputWeights);
+			}
 		}
 
 		int expectedInputs() {
-			return mInputsPerNeuron * neurons.size();
+			return mInputsPerNeuron * neuronCount;
 		}
 
 		int expectedOutputs() {
-			return mOutputsPerNeuron * neurons.size();
+			return mOutputsPerNeuron * neuronCount;
 		}
 
-		vector<Neuron> getNeurons() {
-			return vector<Neuron>(neurons);
+		Neuron* getNeurons() {
+			return neurons;
 		}
 
 		void execute(double* input, int inputLength, double* output, int outputLength) {
+			if (neurons == nullptr) throw invalid_argument("Uninitialized layer.");
 			if (mInputsPerNeuron == 0 || mOutputsPerNeuron == 0) throw out_of_range("Invalid input/output count, cannot be zero. Likely did not init.");
 			
-			if (neurons.size() != neuronCount) {
-				throw invalid_argument("Uninitialized layer.");
-			}
 
 			if (input == NULL) throw invalid_argument("Layer received null input pointer.");
 			if (output == NULL) throw invalid_argument("Layer received null output pointer.");
-
-			size_t neuronCount = neurons.size();
 
 			if (inputLength != mInputsPerNeuron * neuronCount) throw invalid_argument("Input buffer length is invalid.");
 			if (outputLength != neuronCount) throw invalid_argument("Output buffer length is invalid, must be equal to neuron count.");
@@ -126,7 +101,7 @@ namespace nn {
 		}
 
 		void display() {
-			if (neurons.size() != neuronCount) {
+			if (neurons == nullptr) {
 				printf("UNINITIALIZED LAYER OF SIZE %s", to_string(neuronCount).c_str());
 				return;
 			}

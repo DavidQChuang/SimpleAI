@@ -27,7 +27,8 @@ namespace nn {
 			double* buffer, *outPtr;
 
 			NeuronLayer layer = network.getLayers()[0];
-			vector<Neuron> neurons = layer.getNeurons();
+			Neuron* neurons = layer.getNeurons();
+			size_t neuronCount = layer.size();
 
 			printf("\nInputs: [");
 			for (int i = 0;;) {
@@ -75,13 +76,13 @@ namespace nn {
 					break;
 				}
 
-				for (int i = 0; i < neurons.size(); i++) {
+				for (int i = 0; i < neuronCount; i++) {
 					Neuron neuron = neurons[i];
 
 					vector<double> weightsIn = neuron.weightsIn();
 					double error = outputs[i] - outPtr[i]; // target - result
 
-					neuron.setWeightIn(0, weightsIn[0] + deltaW(error, weightsIn[0]));
+					weightsIn[0] += deltaW(error, weightsIn[0]);
 				}
 			}
 

@@ -64,7 +64,7 @@ namespace nn {
 			double* inputs, size_t inLength, double* outputs, size_t outLength) = 0;
 
 		NeuralNetwork trainCopy(NeuralNetwork network, double* inputs, size_t inLength, double* outputs, size_t outLength) {
-			NeuralNetwork newNet = NeuralNetwork(network);
+			NeuralNetwork newNet = NeuralNetwork::copy(network);
 			trainInplace(newNet, inputs, inLength, outputs, outLength);
 			return newNet;
 		}

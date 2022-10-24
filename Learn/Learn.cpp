@@ -65,14 +65,15 @@ int main()
 				printf("### NETWORK BEFORE TRAINING ###\n");
 				net.display();
 
-				nn::SupervisedNetworkTrainer* trainer = (nn::SupervisedNetworkTrainer*)
-					(new nn::PerceptronTrainer());
-				trainer->setEpochTarget(10);
+				nn::NeuralNetwork newNet = nn::NeuralNetwork::copy(net);
+
+				nn::PerceptronTrainer trainer = nn::PerceptronTrainer();
+				trainer.setEpochTarget(10);
 
 				for (int i = 0; i < 4; i++) {
 					try {
 						printf("\n### Training set #%s\n", to_string(i).c_str());
-						trainer->trainInplace(net, ptronTrainingIn[i], 3, ptronTrainingOut[i], 1);
+						trainer.trainInplace(newNet, ptronTrainingIn[i], 3, ptronTrainingOut[i], 1);
 					}
 					catch (exception e) {
 						printf("\n\n!!! ERROR !!! Threw exception while training: %s", e.what());
@@ -81,11 +82,12 @@ int main()
 				}
 
 				printf("### NETWORK AFTER TRAINING ###\n");
-				net.display();
+				net.displayChange(newNet);
 
 				break;
 			}
-		}
-	}
+		} // if 
+		printf("\n\n");
+	} // for
 
 }
