@@ -36,38 +36,38 @@ namespace nn {
 		}
 
 		static NeuralNetwork copy(const NeuralNetwork& other) {
-			NeuralNetwork nn = NeuralNetwork();
+			NeuralNetwork newNet = NeuralNetwork();
 
 			for (int i = 0; i < other.nnLayers.size(); i++) {
 				NeuronLayer layer = other.nnLayers[i];
 				NeuronLayer layerCopy = NeuronLayer(layer.size(), layer.name());
-				nn.nnLayers.push_back(layerCopy);
+				newNet.nnLayers.push_back(layerCopy);
 			}
 
-			nn.ioBufferSize = other.ioBufferSize;
+			newNet.ioBufferSize = other.ioBufferSize;
 			if (other.neuronBuf != nullptr) {
-				nn.neuronBuf = new Neuron[nn.ioBufferSize];
-				memcpy(nn.neuronBuf, other.neuronBuf, nn.ioBufferSize);
+				newNet.neuronBuf = new Neuron[newNet.ioBufferSize];
+				memcpy(newNet.neuronBuf, other.neuronBuf, newNet.ioBufferSize * sizeof(Neuron));
 			}
 
-			nn.inputs = other.inputs;
-			nn.outputs = other.outputs;
+			newNet.inputs = other.inputs;
+			newNet.outputs = other.outputs;
 
-			return nn;
+			return newNet;
 		}
 
 		void init(ActivationFunction func) {
 			int bufSize = 0;
 			int nBufSize = 0;
 
-			NeuronLayer input = nnLayers.front();
-			NeuronLayer output = nnLayers.back();
+			NeuronLayer* input = &nnLayers.front();
+			NeuronLayer* output = &nnLayers.back();
 
 			if (nnLayers.size() == 1) {
 				// calculate output buffer size
-				bufSize += input.expectedInputs();
-				bufSize += input.expectedOutputs();
-				nBufSize += input.size();
+				bufSize += input->expectedInputs();
+				bufSize += input->expectedOutputs();
+				nBufSize += input->size();
 
 				// init buffer
 				neuronBuf = new Neuron[nBufSize];
@@ -75,51 +75,54 @@ namespace nn {
 				// init layer
 				nnLayers.front().init(NULL, NULL, func, neuronBuf);
 			}
-			else if(nnLayers.size() >= 2) {
+			else if (nnLayers.size() >= 2) {
 				vector<NeuronLayer>::iterator it;
 
 				// calculate output buffer size
 				int prevOutputs;
-
-				bufSize = bufSize + input.expectedInputs();
-				bufSize = bufSize + (prevOutputs = input.expectedOutputs());
-				nBufSize += input.size();
+				nBufSize += input->size();
 
 				for (it = nnLayers.begin() + 1; it < nnLayers.end() - 1; it++) {
 					NeuronLayer layer = *it;
-
-					if (prevOutputs != layer.expectedInputs())
-						throw out_of_range("Expected input of layer did not match expected output of previous layer.");
-
-					bufSize = bufSize + (prevOutputs = layer.expectedOutputs());
 					nBufSize += layer.size();
 				}
 
-				if (prevOutputs != output.expectedInputs())
-					throw out_of_range("Expected input of output layer did not match expected output of previous layer.");
-
-				bufSize += output.expectedOutputs();
-				nBufSize += output.size();
+				nBufSize += output->size();
 
 				// init buffer
 				neuronBuf = new Neuron[nBufSize];
 
 				// init all layers
-				NeuronLayer prev = input;
+				NeuronLayer* prev = input;
 				Neuron* layerNeurons = neuronBuf;
 
-				input.init(NULL, &nnLayers[1], func, layerNeurons);
-				layerNeurons += input.size();
+				input->init(NULL, &nnLayers[1], func, layerNeurons);
+
+				layerNeurons += input->size();
+				bufSize = bufSize + input->expectedInputs();
+				bufSize = bufSize + (prevOutputs = input->expectedOutputs());
+
 				for (it = nnLayers.begin() + 1; it < nnLayers.end() - 1; it++) {
 					NeuronLayer layer = *it;
 					NeuronLayer next = *(it + 1);
 
-					layer.init(&prev, &next, func, layerNeurons);
+					layer.init(prev, &next, func, layerNeurons);
 
-					prev = layer;
+					if (prevOutputs != layer.expectedInputs())
+						throw out_of_range("Expected input of layer did not match expected output of previous layer.");
+
 					layerNeurons += layer.size();
+					bufSize = bufSize + (prevOutputs = layer.expectedOutputs());
+
+					prev = &layer;
 				}
-				output.init(&nnLayers[nnLayers.size() - 2], NULL, func, layerNeurons);
+
+				output->init(&nnLayers[nnLayers.size() - 2], NULL, func, layerNeurons);
+
+				if (prevOutputs != output->expectedInputs())
+					throw out_of_range("Expected input of output layer did not match expected output of previous layer.");
+
+				bufSize += output->expectedOutputs();
 			}
 
 			inputs = nnLayers.front().expectedInputs();

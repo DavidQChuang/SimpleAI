@@ -33,6 +33,8 @@ namespace nn {
 	protected:
 		void executeNetwork(NeuralNetwork network, double*& buffer, double*& networkOutputs, double* inputs, size_t inLength) {
 			size_t bufferSize = network.expectedBufferSize();
+
+			if (bufferSize == 0) throw invalid_argument("Network had size 0");
 			buffer = new double[bufferSize];
 
 			memcpy(buffer, inputs, inLength * sizeof(double));
