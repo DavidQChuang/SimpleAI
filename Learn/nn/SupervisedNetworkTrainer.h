@@ -32,7 +32,7 @@ namespace nn {
 
 	protected:
 		void executeNetwork(NeuralNetwork network, double*& buffer, double*& networkOutputs, double* inputs, size_t inLength) {
-			size_t bufferSize = network.expectedBufferSize();
+			int bufferSize = network.expectedBufferSize();
 
 			if (bufferSize == 0) throw invalid_argument("Network had size 0");
 			buffer = new double[bufferSize];
@@ -40,8 +40,6 @@ namespace nn {
 			memcpy(buffer, inputs, inLength * sizeof(double));
 			networkOutputs = network.executeToIOArray(buffer, inLength, bufferSize);
 		}
-
-		//bool 
 
 	public:
 		SupervisedNetworkTrainer(double learnRate = 0.1, double error = 0.002, int epochs = 1000) {
@@ -66,7 +64,7 @@ namespace nn {
 			double* inputs, size_t inLength, double* outputs, size_t outLength) = 0;
 
 		NeuralNetwork trainCopy(NeuralNetwork network, double* inputs, size_t inLength, double* outputs, size_t outLength) {
-			NeuralNetwork newNet = NeuralNetwork::copy(network);
+			NeuralNetwork newNet = NeuralNetwork(network);
 			trainInplace(newNet, inputs, inLength, outputs, outLength);
 			return newNet;
 		}

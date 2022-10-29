@@ -27,27 +27,18 @@ int main()
 			char ch = val.c_str()[0];
 			switch (ch) {
 			case 'q': return 0;
+
 			case '1':
 				ml::DescriptionLearner desc;
 				desc.initialize(new ml::DLearnerListData());
 				desc.execute();
 				break;
+
 			case '2':
-				nn::NeuronLayer input(3, "in");
-				/*nn::NeuronLayer layer1(3, "layer1");
-				nn::NeuronLayer layer2(3, "layer2");*/
-				nn::NeuronLayer output(1, "out");
-
-				vector<nn::NeuronLayer> getLayers = { input, output };
-				nn::NeuralNetwork net(getLayers);
-
-				try {
-					net.init(nn::Step);
-				}
-				catch (exception e) {
-					printf("\n\n!!! ERROR !!! Threw exception while initializing: %s", e.what());
-					return -1;
-				}
+				nn::NeuralNetwork net({
+					nn::NeuronLayer(3, nn::Step, "in"),
+					nn::NeuronLayer(1, nn::Step, "out")
+				});
 
 				double** ptronTrainingIn = new double* [4] {
 					new double[3] { 1.0, 0.0, 0.0 },
@@ -65,7 +56,7 @@ int main()
 				printf("### NETWORK BEFORE TRAINING ###\n");
 				net.display();
 
-				nn::NeuralNetwork newNet = nn::NeuralNetwork::copy(net);
+				nn::NeuralNetwork newNet = nn::NeuralNetwork(net);
 
 				nn::PerceptronTrainer trainer = nn::PerceptronTrainer();
 				trainer.setEpochTarget(10);

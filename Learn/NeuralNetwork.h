@@ -3,7 +3,6 @@
 #include <vector>
 #include <string>
 
-#include "nn/Neuron.h"
 #include "nn/NeuronLayer.h"
 
 using namespace std;
@@ -13,8 +12,7 @@ namespace nn {
 	private:
 		vector<NeuronLayer> nnLayers;
 
-		Neuron* neuronBuf = nullptr;
-		size_t ioBufferSize = 0;
+		int ioBufferSize;
 
 		int inputs = 0;
 		int outputs = 0;
@@ -24,110 +22,73 @@ namespace nn {
 		}
 
 	public:
-		NeuralNetwork(vector<NeuronLayer> getLayers) {
+		NeuralNetwork(initializer_list<NeuronLayer> getLayers) {
 			nnLayers = getLayers;
 
 			if (nnLayers.size() == 0) {
 				throw invalid_argument("The neural network cannot have zero layers.");
 			}
+
+			int layers = nnLayers.size();
+			int lastL = layers - 1;
+			int firstL = 0;
+
+			int inputsPerNeuron = 1;
+			for (int i = 0; i < layers; i++) {
+				NeuronLayer layer = nnLayers[i];
+
+				if (inputsPerNeuron != layer.expectedInputs())
+					throw out_of_range("Layers have incompatible I/O buffer sizes.");
+				
+				bool useInputs = i != lastL;
+				bool useOutputs = i != firstL;
+
+				layer.init(inputsPerNeuron, 1, useInputs, useOutputs);
+
+				inputsPerNeuron = layer.expectedOutputs();
+				ioBufferSize += layer.expectedInputs();
+			}
+
+			inputs = nnLayers[0].expectedInputs();
+			outputs = nnLayers[nnLayers.size() - 1].expectedOutputs();
+
+			ioBufferSize += outputs;
 		}
-		~NeuralNetwork() {
-			delete[] neuronBuf;
+
+		inline int expectedInputs() { return inputs; }
+		inline int expectedOutputs() { return outputs; }
+
+		inline int expectedBufferSize() { return ioBufferSize; }
+
+		inline vector<NeuronLayer>& getLayers() { return nnLayers; }
+
+		double* execute(double* inputs, size_t inLength) {
+			double* buffer = new double[ioBufferSize];
+			memcpy(buffer, inputs, inLength * sizeof(double));
+
+			return executeToIOArray(buffer, inLength, ioBufferSize);
 		}
 
-		static NeuralNetwork copy(const NeuralNetwork& other) {
-			NeuralNetwork newNet = NeuralNetwork();
+		double* executeToIOArray(double* buffer, size_t inLength, size_t bufferSize) {
+			if (inLength != nnLayers[0].expectedInputs())
+				throw invalid_argument("Expected input size did not match given input size.");
 
-			for (int i = 0; i < other.nnLayers.size(); i++) {
-				NeuronLayer layer = other.nnLayers[i];
-				NeuronLayer layerCopy = NeuronLayer(layer.size(), layer.name());
-				newNet.nnLayers.push_back(layerCopy);
+			if (ioBufferSize != bufferSize)
+				throw invalid_argument("Expected buffer size did not match given buffer size.");
+
+			double* inPtr = buffer;
+			for (int i = 0; i < nnLayers.size(); i++) {
+				NeuronLayer layer = nnLayers[i];
+				int inLen = layer.expectedInputs();
+				int outLen = layer.expectedOutputs();
+
+				double* outPtr = inPtr + inLen;
+
+				layer.execute(inPtr, inLen, outPtr, outLen);
+				inPtr = outPtr;
 			}
 
-			newNet.ioBufferSize = other.ioBufferSize;
-			if (other.neuronBuf != nullptr) {
-				newNet.neuronBuf = new Neuron[newNet.ioBufferSize];
-				memcpy(newNet.neuronBuf, other.neuronBuf, newNet.ioBufferSize * sizeof(Neuron));
-			}
-
-			newNet.inputs = other.inputs;
-			newNet.outputs = other.outputs;
-
-			return newNet;
-		}
-
-		void init(ActivationFunction func) {
-			int bufSize = 0;
-			int nBufSize = 0;
-
-			NeuronLayer* input = &nnLayers.front();
-			NeuronLayer* output = &nnLayers.back();
-
-			if (nnLayers.size() == 1) {
-				// calculate output buffer size
-				bufSize += input->expectedInputs();
-				bufSize += input->expectedOutputs();
-				nBufSize += input->size();
-
-				// init buffer
-				neuronBuf = new Neuron[nBufSize];
-
-				// init layer
-				nnLayers.front().init(NULL, NULL, func, neuronBuf);
-			}
-			else if (nnLayers.size() >= 2) {
-				vector<NeuronLayer>::iterator it;
-
-				// calculate output buffer size
-				int prevOutputs;
-				nBufSize += input->size();
-
-				for (it = nnLayers.begin() + 1; it < nnLayers.end() - 1; it++) {
-					NeuronLayer layer = *it;
-					nBufSize += layer.size();
-				}
-
-				nBufSize += output->size();
-
-				// init buffer
-				neuronBuf = new Neuron[nBufSize];
-
-				// init all layers
-				NeuronLayer* prev = input;
-				Neuron* layerNeurons = neuronBuf;
-
-				input->init(NULL, &nnLayers[1], func, layerNeurons);
-
-				layerNeurons += input->size();
-				bufSize = bufSize + input->expectedInputs();
-				bufSize = bufSize + (prevOutputs = input->expectedOutputs());
-
-				for (it = nnLayers.begin() + 1; it < nnLayers.end() - 1; it++) {
-					NeuronLayer layer = *it;
-					NeuronLayer next = *(it + 1);
-
-					layer.init(prev, &next, func, layerNeurons);
-
-					if (prevOutputs != layer.expectedInputs())
-						throw out_of_range("Expected input of layer did not match expected output of previous layer.");
-
-					layerNeurons += layer.size();
-					bufSize = bufSize + (prevOutputs = layer.expectedOutputs());
-
-					prev = &layer;
-				}
-
-				output->init(&nnLayers[nnLayers.size() - 2], NULL, func, layerNeurons);
-
-				if (prevOutputs != output->expectedInputs())
-					throw out_of_range("Expected input of output layer did not match expected output of previous layer.");
-
-				bufSize += output->expectedOutputs();
-			}
-
-			inputs = nnLayers.front().expectedInputs();
-			outputs = nnLayers.back().expectedOutputs();
-			ioBufferSize = bufSize;
+			return buffer + (ioBufferSize - nnLayers.back().expectedOutputs());
 		}
 
 		void display() {
@@ -152,54 +113,6 @@ namespace nn {
 				printf("### OUTPUT LAYER ###\n");
 				nnLayers.back().display();
 			}
-		}
-
-		int expectedInputs() {
-			return inputs;
-		}
-
-		int expectedOutputs() {
-			return outputs;
-		}
-
-		size_t expectedBufferSize() {
-			return ioBufferSize;
-		}
-
-		vector<NeuronLayer> getLayers() {
-			return vector<NeuronLayer>(nnLayers);
-		}
-
-		double* execute(double* inputs, size_t inLength) {
-			double* buffer = new double[ioBufferSize];
-			memcpy(buffer, inputs, inLength * sizeof(double));
-
-			return executeToIOArray(buffer, inLength, ioBufferSize);
-		}
-
-		double* executeToIOArray(double* buffer, size_t inLength, size_t bufferSize) {
-			int remaining = ioBufferSize;
-
-			if (inLength != nnLayers[0].expectedInputs())
-				throw invalid_argument("Expected input size did not match given input size.");
-
-			if (ioBufferSize != bufferSize)
-				throw invalid_argument("Expected buffer size did not match given buffer size.");
-
-			double* inPtr = buffer;
-			for (int i = 0; i < nnLayers.size(); i++) {
-				NeuronLayer layer = nnLayers[i];
-				int inLen = layer.expectedInputs();
-				int outLen = layer.expectedOutputs();
-
-				remaining -= inLen;
-				if (remaining < 0) throw out_of_range("Exceeded buffer capacity.");
-
-				layer.execute(inPtr, inLen, inPtr + inLen, outLen);
-				inPtr += inLen;
-			}
-
-			return buffer + (ioBufferSize - nnLayers.back().expectedOutputs());
 		}
 
 		void displayChange(NeuralNetwork other) {

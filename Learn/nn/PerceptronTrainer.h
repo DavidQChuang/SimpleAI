@@ -16,7 +16,8 @@ namespace nn {
 
 		}
 
-		void trainInplace(NeuralNetwork network,
+		void trainInplace(NeuralNetwork
+			network,
 			double* inputs, size_t inLength, double* outputs, size_t outLength) {
 			if (network.getLayers().size() > 2)
 				throw invalid_argument("Can only train networks with 1 inout layer or 1 input and 1 output layer. ");
@@ -25,10 +26,6 @@ namespace nn {
 			}
 
 			double* buffer, *outPtr;
-
-			NeuronLayer layer = network.getLayers()[0];
-			Neuron* neurons = layer.getNeurons();
-			size_t neuronCount = layer.size();
 
 			printf("\nInputs: [");
 			for (int i = 0;;) {
@@ -51,6 +48,11 @@ namespace nn {
 				else break;
 			}
 			printf("]");
+
+			vector<NeuronLayer> layers = network.getLayers();
+			NeuronLayer layer = layers[0];
+
+			int neurons = layer.size();
 
 			int e = 0;
 			double mse = 0;
@@ -76,12 +78,10 @@ namespace nn {
 					break;
 				}
 
-				for (int i = 0; i < neuronCount; i++) {
-					Neuron neuron = neurons[i];
-
-					vector<double> weightsIn = neuron.weightsIn();
+				for (int i = 0; i < neurons; i++) {
 					double error = outputs[i] - outPtr[i]; // target - result
 
+					double* weightsIn = layer.weightsIn(i);
 					weightsIn[0] += deltaW(error, weightsIn[0]);
 				}
 			}
