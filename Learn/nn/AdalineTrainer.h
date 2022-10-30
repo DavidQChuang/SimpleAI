@@ -3,7 +3,7 @@
 #include "SupervisedNetworkTrainer.h"
 
 namespace nn {
-	class PerceptronTrainer : public SupervisedNetworkTrainer {
+	class AdalineTrainer : public SupervisedNetworkTrainer {
 	private:
 		NeuronLayer* layer;
 		vector<double>* weightsIn;
@@ -15,10 +15,10 @@ namespace nn {
 			SupervisedNetworkTrainer::checkTrainingInputs(network, inputs, inLength, expOutputs, outLength);
 
 			if (network.getLayers().size() > 2)
-				throw invalid_argument("Perceptron requires 1 inout layer or 1 in + 1 out layer. ");
+				throw invalid_argument("Adaline requires 1 inout layer or 1 in + 1 out layer. ");
 
 			if (outLength != 1)
-				throw invalid_argument("Perceptron requires 1 output.");
+				throw invalid_argument("Adaline requires 1 output.");
 
 			layer = &network.getLayers()[0];
 			weightsIn = &layer->weightsIn();
@@ -29,17 +29,25 @@ namespace nn {
 
 		void train(NeuralNetwork& network, double* inputs, double* expOutputs, double* buffer, double* outPtr) {
 			double error = expOutputs[0] - outPtr[0]; // target - result, positive if result was lower, negative if result was higher
+			double sum = 0;
+
+			int out = network.expectedInputs();
+			for (int n = 0; n < neurons; n++) {
+				sum += buffer[out + n * layer->neuronOutputs()];
+			}
 
 			int in = 0;
 			for (int n = 0; n < neurons; n++) {
 				for (int i = 0; i < layer->neuronInputs(); i++) {
-					weightsIn[0][n] += learningRate * error * inputs[in++];
+					weightsIn[0][n] += learningRate * error * inputs[in] * layer->derivActivationFunc(sum);
+
+					in++;
 				}
 			}
 		}
 
 	public:
-		PerceptronTrainer(double learnRate = 0.1, double error = 0.002, int epochs = 1000)
+		AdalineTrainer(double learnRate = 0.1, double error = 0.002, int epochs = 1000)
 			: SupervisedNetworkTrainer(learnRate, error, epochs) { }
 	};
 }

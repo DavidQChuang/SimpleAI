@@ -45,6 +45,16 @@ namespace nn {
 			networkOutputs = network.executeToIOArray(buffer, inLength, bufferSize);
 		}
 
+		virtual void train(NeuralNetwork& network, double* inputs, double* expOutputs, double* buffer, double* outPtr) = 0;
+		virtual bool checkTrainingInputs(NeuralNetwork& network,
+			double* inputs, size_t inLength, double* expOutputs, size_t outLength) {
+			if (network.expectedInputs() != inLength)
+				throw invalid_argument("Input of network and size of input buffer don't match.");
+			if (network.expectedOutputs() != outLength)
+				throw invalid_argument("Output of network and size of output buffer don't match.");
+
+			return true;
+		}
 	public:
 		SupervisedNetworkTrainer(double learnRate = 0.1, double error = 0.002, int epochs = 1000) {
 			learningRate = learnRate;
@@ -64,8 +74,71 @@ namespace nn {
 			epochTarget = epochs;
 		}
 
-		virtual void trainInplace(NeuralNetwork& network, 
-			double* inputs, size_t inLength, double* outputs, size_t outLength) = 0;
+		void trainInplace(NeuralNetwork& network,
+			double* inputs, size_t inLength, double* expOutputs, size_t outLength) {
+			if (!checkTrainingInputs(network, inputs, inLength, expOutputs, outLength)) {
+				return;
+			}
+
+			printf("\n%-10s | [ ", "Inputs");
+			for (int i = 0;;) {
+				printf("%.3f", inputs[i]);
+
+				if (++i < inLength) {
+					printf(", ");
+				}
+				else break;
+			}
+			printf(" ]");
+
+			printf("\n%-10s | [ ", "ExpOutputs");
+			for (int i = 0;;) {
+				printf("%.6f", expOutputs[i]);
+
+				if (++i < outLength) {
+					printf(", ");
+				}
+				else break;
+			}
+			printf(" ]");
+
+			double* buffer = nullptr, * outPtr = nullptr;
+
+			int e = 0;
+			double mse = 0;
+			for (e = 0; e < epochTarget; e++) {
+				//printf("\n\n### Epoch #%s", to_string(e).c_str());
+
+				executeNetwork(network, buffer, outPtr, inputs, inLength);
+
+				mse = cost(outLength, outPtr, expOutputs);
+				if (mse < errorTarget) {
+					break;
+				}
+
+				train(network, inputs, expOutputs, buffer, outPtr);
+			}
+
+			printf("\n%-10s | [ ", "NNOutputs");
+			for (int i = 0;;) {
+				printf("%.6f", outPtr[i]);
+
+				if (++i < outLength) {
+					printf(", ");
+				}
+				else break;
+			}
+			printf(" ]");
+			printf("\n%-10s | [ %.6f ]\n", "MSError", mse);
+
+			if (e == epochTarget) {
+				printf("%-10s | %-30s | Epoch %-3d", "Result", "Failed - Reached epoch limit", e);
+			}
+			else {
+				printf("%-10s | %-30s | Epoch %-3d", "Result", "Succeeded - reached MSE limit", e);
+			}
+			printf("\n");
+		}
 
 		NeuralNetwork trainCopy(NeuralNetwork network, double* inputs, size_t inLength, double* outputs, size_t outLength) {
 			trainInplace(network, inputs, inLength, outputs, outLength);

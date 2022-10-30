@@ -41,17 +41,14 @@
     <ClInclude Include="nn\SupervisedNetworkTrainer.h">
       <Filter>Header Files\nn</Filter>
     </ClInclude>
-    <ClInclude Include="nn\Neuron.h">
-      <Filter>Header Files\nn</Filter>
-    </ClInclude>
     <ClInclude Include="nn\NeuronLayer.h">
       <Filter>Header Files\nn</Filter>
     </ClInclude>
-    <ClInclude Include="PerceptronTrainer.h">
+    <ClInclude Include="nn\AdalineTrainer.h">
       <Filter>Header Files\nn</Filter>
     </ClInclude>
-    <ClInclude Include="format.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="nn\PerceptronTrainer.h">
+      <Filter>Header Files\nn</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
