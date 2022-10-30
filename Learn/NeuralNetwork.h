@@ -35,15 +35,15 @@ namespace nn {
 
 			int inputsPerNeuron = 1;
 			for (int i = 0; i < layers; i++) {
-				NeuronLayer layer = nnLayers[i];
-
-				if (inputsPerNeuron != layer.expectedInputs())
-					throw out_of_range("Layers have incompatible I/O buffer sizes.");
+				NeuronLayer& layer = nnLayers[i];
 				
-				bool useInputs = i != lastL;
-				bool useOutputs = i != firstL;
+				bool useInputs = (i != lastL);
+				bool useOutputs = (i != firstL);
 
 				layer.init(inputsPerNeuron, 1, useInputs, useOutputs);
+
+				if (inputsPerNeuron * layer.size() != layer.expectedInputs())
+					throw out_of_range("Layers have incompatible I/O buffer sizes.");
 
 				inputsPerNeuron = layer.expectedOutputs();
 				ioBufferSize += layer.expectedInputs();
@@ -92,25 +92,28 @@ namespace nn {
 		}
 
 		void display() {
-			printf("Expected in/out: %s/%s\n", to_string(inputs).c_str(), to_string(outputs).c_str());
+			printf("\nExpected in/out: %s/%s\n", to_string(inputs).c_str(), to_string(outputs).c_str());
 
 			if (nnLayers.size() == 1) {
-				printf("### INPUT LAYER ###\n");
+				printf("### Input Layer");
 				nnLayers[0].display();
 			}
 			else if (nnLayers.size() >= 2) {
 				vector<NeuronLayer>::iterator it;
 
-				printf("### INPUT LAYER ###\n");
+				printf("### Input Layer");
 				nnLayers.front().display();
+				printf("\n");
+
 				for (it = nnLayers.begin() + 1; it < nnLayers.end() - 1; it++) {
 					NeuronLayer layer = *it;
 
-					printf("### HIDDEN LAYER ### - %s\n", layer.name().c_str());
+					printf("\n### Hidden Layer - %s", layer.name().c_str());
 					layer.display();
+					printf("\n");
 				}
 
-				printf("### OUTPUT LAYER ###\n");
+				printf("\n### Output Layer");
 				nnLayers.back().display();
 			}
 		}
@@ -119,26 +122,28 @@ namespace nn {
 			printf("Expected in/out: %s/%s\n", to_string(inputs).c_str(), to_string(outputs).c_str());
 
 			if (nnLayers.size() == 1) {
-				printf("### INPUT LAYER ###\n");
+				printf("### Input Layer");
 				nnLayers[0].display();
 				other.nnLayers[0].display();
 			}
 			else if (nnLayers.size() >= 2) {
 				vector<NeuronLayer>::iterator it, it2;
 
-				printf("### INPUT LAYER ###\n");
+				printf("### Input Layer");
 				nnLayers.front().display();
 				other.nnLayers.front().display();
+				printf("\n");
 
 				for (it = nnLayers.begin() + 1, it2 = other.nnLayers.begin() + 1; it < nnLayers.end() - 1; it++) {
 					NeuronLayer layer = *it;
 
-					printf("### HIDDEN LAYER ### - %s\n", layer.name().c_str());
+					printf("\n### Hidden Layer - %s", layer.name().c_str());
 					(*it).display();
 					(*it2).display();
+					printf("\n");
 				}
 
-				printf("### OUTPUT LAYER ###\n");
+				printf("\n### Output Layer");
 				nnLayers.back().display();
 				other.nnLayers.back().display();
 			}

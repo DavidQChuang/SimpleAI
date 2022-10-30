@@ -16,43 +16,46 @@ namespace nn {
 
 		}
 
-		void trainInplace(NeuralNetwork
-			network,
-			double* inputs, size_t inLength, double* outputs, size_t outLength) {
+		void trainInplace(NeuralNetwork& network,
+			double* inputs, size_t inLength, double* expOutputs, size_t outLength) {
 			if (network.getLayers().size() > 2)
-				throw invalid_argument("Can only train networks with 1 inout layer or 1 input and 1 output layer. ");
-			if (outLength != network.expectedOutputs()) {
+				throw invalid_argument("Perceptron requires 1 inout layer or 1 in + 1 out layer. ");
+
+			if (outLength != network.expectedOutputs())
 				throw invalid_argument("Invalid number of outputs.");
-			}
 
-			double* buffer, *outPtr;
+			if (outLength != 1)
+				throw invalid_argument("Perceptron requires 1 output.");
 
-			printf("\nInputs: [");
+			printf("\n%-10s | [ ", "Inputs");
 			for (int i = 0;;) {
-				printf(to_string(inputs[i]).c_str());
+				printf("%.3f", inputs[i]);
 
 				if (++i < inLength) {
 					printf(", ");
 				}
 				else break;
 			}
-			printf("]");
+			printf(" ]");
 
-			printf("\n\nExpected outputs: [");
+			printf("\n%-10s | [ ", "ExpOutputs");
 			for (int i = 0;;) {
-				printf(to_string(outputs[i]).c_str());
+				printf("%.6f", expOutputs[i]);
 
 				if (++i < outLength) {
 					printf(", ");
 				}
 				else break;
 			}
-			printf("]");
+			printf(" ]");
 
-			vector<NeuronLayer> layers = network.getLayers();
-			NeuronLayer layer = layers[0];
+			vector<NeuronLayer>& layers = network.getLayers();
+			NeuronLayer& layer = layers[0];
+			vector<double>& weightsIn = layer.weightsIn();
 
 			int neurons = layer.size();
+
+			double *buffer = nullptr, *outPtr = nullptr;
 
 			int e = 0;
 			double mse = 0;
@@ -61,37 +64,42 @@ namespace nn {
 
 				executeNetwork(network, buffer, outPtr, inputs, inLength);
 
-				mse = cost(outLength, outPtr, outputs);
-				/*printf("\nNN Outputs: [");
-				for (int i = 0;;) {
-					printf(to_string(outPtr[i]).c_str());
-
-					if (++i < outLength) {
-						printf(", ");
-					}
-					else break;
-				}
-				printf("]");
-				printf("\n\nMean Standard Error: [ %s ]\n", to_string(mse).c_str());*/
-
+				mse = cost(outLength, outPtr, expOutputs);
 				if (mse < errorTarget) {
 					break;
 				}
 
-				for (int i = 0; i < neurons; i++) {
-					double error = outputs[i] - outPtr[i]; // target - result
+				double error = expOutputs[0] - outPtr[0]; // target - result, positive if result was lower, negative if result was higher
 
-					double* weightsIn = layer.weightsIn(i);
-					weightsIn[0] += deltaW(error, weightsIn[0]);
+				int in = 0;
+				for (int n = 0; n < neurons; n++) {
+					for (int i = 0; i < layer.neuronInputs(); i++) {
+						weightsIn[n] += deltaW(error, inputs[in++]);
+					}
 				}
 			}
 
+			printf("\n%-10s | [ ", "NNOutputs");
+			for (int i = 0;;) {
+				printf("%.6f", outPtr[i]);
+
+				if (++i < outLength) {
+					printf(", ");
+				}
+				else break;
+			}
+			printf(" ]");
+			printf("\n%-10s | [ %.6f ]\n", "MSError", mse);
+
+			delete[] buffer;
+
 			if (e == epochTarget) {
-				printf("\nReached epoch limit on epoch %s with an MSE of %s\n", to_string(e).c_str(), to_string(mse).c_str());
+				printf("%-10s | %-30s | Epoch %-3d", "Result", "Failed - Reached epoch limit", e);
 			}
 			else {
-				printf("\nSucceeded on epoch %s with an MSE of %s\n", to_string(e).c_str(), to_string(mse).c_str());
+				printf("%-10s | %-30s | Epoch %-3d", "Result", "Succeeded - reached MSE limit", e);
 			}
+			printf("\n");
 		}
 	};
 }

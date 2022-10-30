@@ -4,7 +4,7 @@
 #include <random>
 
 namespace nn {
-	enum ActivationFunction {
+	enum class ActFunc {
 		Step, Linear, Siglog, Hypertan
 	};
 
@@ -16,29 +16,26 @@ namespace nn {
 		bool	mUseOutputs = true;
 		int		neuronCount = 0;
 
-		double* inputWeights = nullptr;
-		double* outputWeights = nullptr;
+		vector<double> inputWeights;
+		vector<double> outputWeights;
 
-		ActivationFunction func = Step;
+		ActFunc func = ActFunc::Step;
 
 		string	layerName = "";
 
 	public:
-		NeuronLayer(int count, ActivationFunction f, string name = "Layer") {
+		NeuronLayer(int count, ActFunc f, string name = "Layer") {
 			if (count == 0) throw out_of_range("Invalid neuron count, cannot be zero.");
 
 			neuronCount = count;
 			func = f;
-
 			layerName = name;
 		}
 
-		~NeuronLayer() {
-			delete[] inputWeights;
-			inputWeights = nullptr;
-		}
-
 		void init(int inputsPerNeuron, int outputsPerNeuron, bool useInputs, bool useOutputs) {
+			if (inputsPerNeuron < 1) throw invalid_argument("Uninitialized layer.");
+			if (outputsPerNeuron < 1) throw invalid_argument("Uninitialized layer.");
+
 			mNeuronInputs = inputsPerNeuron;
 			mNeuronOutputs = outputsPerNeuron;
 
@@ -47,7 +44,7 @@ namespace nn {
 
 			if (useInputs) {
 				int inputs = expectedInputs();
-				inputWeights = new double[inputs];
+				inputWeights = vector<double>(inputs);
 				for (int i = 0; i < inputs; i++) {
 					inputWeights[i] = (double)rand() / RAND_MAX;
 				}
@@ -55,7 +52,7 @@ namespace nn {
 
 			if (useOutputs) {
 				int outputs = expectedOutputs();
-				outputWeights = new double[outputs];
+				outputWeights = vector<double>(outputs);
 				for (int i = 0; i < outputs; i++) {
 					outputWeights[i] = (double)rand() / RAND_MAX;
 				}
@@ -64,23 +61,22 @@ namespace nn {
 
 		inline int expectedInputs() { return mNeuronInputs * neuronCount; }
 		inline int expectedOutputs() { return mNeuronOutputs * neuronCount; }
+		
+		inline int neuronInputs() { return mNeuronInputs; }
+		inline int neuronOutputs() { return mNeuronOutputs; }
 
 		inline int size() { return neuronCount; }
 		inline string name() { return layerName; }
 
-		inline double* weightsIn(int neuron) {
-			if (neuron >= neuronCount) throw invalid_argument("Neuron index was out of range.");
-			
-			return inputWeights + neuron * mNeuronInputs;
+		inline vector<double>& weightsIn() {
+			return inputWeights;
 		}
-		inline double* weightsOut(int neuron) {
-			if (neuron >= neuronCount) throw invalid_argument("Neuron index was out of range.");
-
-			return outputWeights + neuron * mNeuronInputs;
+		inline vector<double>& weightsOut() {
+			return outputWeights;
 		}
 
 		void execute(double* input, int inputLength, double* output, int outputLength) {
-			if (inputWeights == nullptr) throw invalid_argument("Uninitialized layer.");
+			if (mNeuronInputs == 0) throw invalid_argument("Uninitialized layer.");
 
 			if (input == NULL) throw invalid_argument("Null input pointer.");
 			if (output == NULL) throw invalid_argument("Null output pointer.");
@@ -105,18 +101,15 @@ namespace nn {
 					}
 				}
 
-				// activation function on sum
-				sum = activationFunc(sum);
-
 				// copy outputs to buffer
 				if (mUseOutputs) {
 					for (int i = 0; i < mNeuronOutputs; i++) {
-						output[i] = sum * outputWeights[outWOffset++];
+						output[i] = activationFunc(sum * outputWeights[outWOffset++]);
 					}
 				}
 				else {
 					for (int i = 0; i < mNeuronOutputs; i++) {
-						output[i] = sum;
+						output[i] = activationFunc(sum);
 					}
 				}
 
@@ -126,53 +119,55 @@ namespace nn {
 		}
 
 		void display() {
-			if (inputWeights == nullptr) {
+			if (mNeuronInputs == 0) {
 				printf("Uninitialized layer: %dx%d inputs, %dx%d outputs",
 					mNeuronInputs, neuronCount, mNeuronOutputs, neuronCount);
 				return;
 			}
 
+			printf("\nLayer [%dx(%d,%d)]", neuronCount, mNeuronInputs, mNeuronOutputs);
+			printf("\n%-7s | -", "Neurons");
+
 			for (int n = 0; n < neuronCount; n++) {
-				printf("\nNeuron #%d\n", n);
-
 				if (mUseInputs) {
-					printf("Input weights:\n[");
+					printf("\n%-7d | IN: [ ", n);
 					for (int i = 0; i < mNeuronInputs; i++) {
-						printf("%f.3", inputWeights[n * mNeuronInputs + i]);
+						printf("%.3f", inputWeights[n * mNeuronInputs + i]);
 
-						if (i + 1 < mNeuronInputs) {
+						if (i + 1 != mNeuronInputs) {
 							printf(", ");
 						}
 						else break;
 					}
-					printf("]\n");
+					printf(" ]");
 				}
 
 				if (mUseOutputs) {
-					printf("Input weights:\n[");
+					printf("\n%-7d | OUT: [ ", n);
 					for (int i = 0; i < mNeuronOutputs; i++) {
-						printf("%f.3", outputWeights[n * mNeuronOutputs + i]);
+						printf("%.3f", outputWeights[n * mNeuronOutputs + i]);
 
-						if (i + 1 < mNeuronOutputs) {
+						if (i + 1 != mNeuronOutputs) {
 							printf(", ");
 						}
 						else break;
 					}
-					printf("]\n");
+					printf(" ]");
 				}
 			}
+			printf("\n");
 		}
 
 		double activationFunc(double v) {
 			switch (func) {
-			case Step:
+			case ActFunc::Step:
 				return v < 0 ? 0 : 1;
 				break;
-			case Linear:
+			case ActFunc::Linear:
 				return v;
-			case Siglog:
+			case ActFunc::Siglog:
 				return 1 / (1 + exp(-v));
-			case Hypertan:
+			case ActFunc::Hypertan:
 				return (1 - exp(-v)) / (1 + exp(-v));
 			}
 
@@ -181,11 +176,11 @@ namespace nn {
 
 		double derivActivationFunc(double v) {
 			switch (func) {
-			case Linear:
+			case ActFunc::Linear:
 				return 1;
-			case Siglog:
+			case ActFunc::Siglog:
 				return v * (1 - v);
-			case Hypertan:
+			case ActFunc::Hypertan:
 				return 1 / pow(cosh(v), 2);
 			}
 

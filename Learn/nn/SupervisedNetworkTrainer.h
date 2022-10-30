@@ -34,7 +34,11 @@ namespace nn {
 		void executeNetwork(NeuralNetwork network, double*& buffer, double*& networkOutputs, double* inputs, size_t inLength) {
 			int bufferSize = network.expectedBufferSize();
 
-			if (bufferSize == 0) throw invalid_argument("Network had size 0");
+			if (bufferSize == 0) {
+				delete[] buffer;
+				throw invalid_argument("Network had size 0");
+			}
+
 			buffer = new double[bufferSize];
 
 			memcpy(buffer, inputs, inLength * sizeof(double));
@@ -60,13 +64,12 @@ namespace nn {
 			epochTarget = epochs;
 		}
 
-		virtual void trainInplace(NeuralNetwork network, 
+		virtual void trainInplace(NeuralNetwork& network, 
 			double* inputs, size_t inLength, double* outputs, size_t outLength) = 0;
 
 		NeuralNetwork trainCopy(NeuralNetwork network, double* inputs, size_t inLength, double* outputs, size_t outLength) {
-			NeuralNetwork newNet = NeuralNetwork(network);
-			trainInplace(newNet, inputs, inLength, outputs, outLength);
-			return newNet;
+			trainInplace(network, inputs, inLength, outputs, outLength);
+			return network;
 		}
 	};
 };
