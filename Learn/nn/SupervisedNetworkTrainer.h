@@ -121,7 +121,7 @@ namespace nn {
 				else break;
 			}
 			printf(" ]");
-			printf("\n%-10s | [ %.6f ]\n", "MSError", mse);
+			printf("\n%-10s | [ %.6e ]\n", "MSError", mse);
 
 			if (e == epochTarget) {
 				printf("%-10s | %-30s | Epoch %-3d", "Result", "Failed - Reached epoch limit", e);

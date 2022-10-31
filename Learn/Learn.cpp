@@ -61,7 +61,7 @@ void nnPerceptron() {
 	}
 	auto stop = chrono::high_resolution_clock::now();
 
-	printf("### NETWORK AFTER TRAINING ###\n---------------------------\nExec time: %dus\n",
+	printf("### NETWORK AFTER TRAINING ###\n---------------------------\nExec time: %lldus\n",
 		chrono::duration_cast<chrono::microseconds>(stop - start).count());
 	net.displayChange(newNet);
 }
@@ -114,7 +114,7 @@ void nnAdaline() {
 	}
 	auto stop = chrono::high_resolution_clock::now();
 
-	printf("### NETWORK AFTER TRAINING ###\n---------------------------\nExec time: %dus\n",
+	printf("### NETWORK AFTER TRAINING ###\n---------------------------\nExec time: %lldus\n",
 		chrono::duration_cast<chrono::microseconds>(stop - start).count());
 	net.displayChange(newNet);
 }
