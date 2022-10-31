@@ -42,7 +42,11 @@ namespace nn {
 			mUseInputs = useInputs;
 			mUseOutputs = useOutputs;
 
-			if (useInputs) {
+			initRandomWeights();
+		}
+
+		void initRandomWeights() {
+			if (mUseInputs) {
 				int inputs = expectedInputs();
 				inputWeights = vector<double>(inputs);
 				for (int i = 0; i < inputs; i++) {
@@ -50,11 +54,29 @@ namespace nn {
 				}
 			}
 
-			if (useOutputs) {
+			if (mUseOutputs) {
 				int outputs = expectedOutputs();
 				outputWeights = vector<double>(outputs);
 				for (int i = 0; i < outputs; i++) {
 					outputWeights[i] = (double)rand() / RAND_MAX;
+				}
+			}
+		}
+
+		void initWeights(double value) {
+			if (mUseInputs) {
+				int inputs = expectedInputs();
+				inputWeights = vector<double>(inputs);
+				for (int i = 0; i < inputs; i++) {
+					inputWeights[i] = value;
+				}
+			}
+
+			if (mUseOutputs) {
+				int outputs = expectedOutputs();
+				outputWeights = vector<double>(outputs);
+				for (int i = 0; i < outputs; i++) {
+					outputWeights[i] = value;
 				}
 			}
 		}
