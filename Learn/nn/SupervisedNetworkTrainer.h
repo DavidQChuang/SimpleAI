@@ -31,19 +31,6 @@ namespace nn {
 		//}
 
 	protected:
-		void executeNetwork(NeuralNetwork network, double*& buffer, double*& networkOutputs, double* inputs, size_t inLength) {
-			int bufferSize = network.expectedBufferSize();
-
-			if (bufferSize == 0) {
-				delete[] buffer;
-				throw invalid_argument("Network had size 0");
-			}
-
-			buffer = new double[bufferSize];
-
-			memcpy(buffer, inputs, inLength * sizeof(double));
-			networkOutputs = network.executeToIOArray(buffer, inLength, bufferSize);
-		}
 
 		virtual void train(NeuralNetwork& network, double* inputs, double* expOutputs, double* buffer, double* outPtr) = 0;
 		virtual bool checkTrainingInputs(NeuralNetwork& network,
@@ -102,14 +89,19 @@ namespace nn {
 			}
 			printf(" ]");
 
-			double* buffer = nullptr, * outPtr = nullptr;
+			int bufferSize = network.expectedBufferSize();
+
+			unique_ptr<double[]> bufferPtr( new double[bufferSize] );
+			double* buffer = bufferPtr.get(),
+			      * outPtr = nullptr;
 
 			int e = 0;
 			double mse = 0;
-			for (e = 0; e < epochTarget; e++) {
-				//printf("\n\n### Epoch #%s", to_string(e).c_str());
 
-				executeNetwork(network, buffer, outPtr, inputs, inLength);
+			memcpy(buffer, inputs, inLength * sizeof(double));
+
+			for (e = 0; e < epochTarget; e++) {
+				outPtr = network.executeToIOArray(buffer, inLength, bufferSize);
 
 				mse = cost(outLength, outPtr, expOutputs);
 				if (mse < errorTarget) {
