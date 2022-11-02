@@ -14,6 +14,7 @@ namespace nn {
 		int		mNeuronOutputs = 0; // output per neuron
 		bool	mUseInputs = true;
 		bool	mUseOutputs = true;
+		bool	mIndependentInputs = false;
 		int		neuronCount = 0;
 
 		vector<double> inputWeights;
@@ -32,13 +33,14 @@ namespace nn {
 			layerName = name;
 		}
 
-		void init(int inputsPerNeuron, int outputsPerNeuron, bool useInputs, bool useOutputs) {
+		void init(int inputsPerNeuron, int outputsPerNeuron, bool independentInputs, bool useInputs, bool useOutputs) {
 			if (inputsPerNeuron < 1) throw invalid_argument("Uninitialized layer.");
 			if (outputsPerNeuron < 1) throw invalid_argument("Uninitialized layer.");
 
 			mNeuronInputs = inputsPerNeuron;
 			mNeuronOutputs = outputsPerNeuron;
 
+			mIndependentInputs = independentInputs;
 			mUseInputs = useInputs;
 			mUseOutputs = useOutputs;
 
@@ -81,14 +83,18 @@ namespace nn {
 			}
 		}
 
-		inline int expectedInputs() { return mNeuronInputs * neuronCount; }
+		inline int expectedInputs() { // if inputs are independent, they don't overlap
+			return mNeuronInputs * (neuronCount * mIndependentInputs + 1 - mIndependentInputs);
+		}
 		inline int expectedOutputs() { return mNeuronOutputs * neuronCount; }
 		
-		inline int neuronInputs() { return mNeuronInputs; }
-		inline int neuronOutputs() { return mNeuronOutputs; }
+		inline int inputsPerNeuron() { return mNeuronInputs; }
+		inline int outputsPerNeuron() { return mNeuronOutputs; }
 
 		inline int size() { return neuronCount; }
 		inline string name() { return layerName; }
+
+		inline bool independentInputs() { return mIndependentInputs;}
 
 		inline vector<double>& weightsIn() {
 			return inputWeights;
@@ -106,37 +112,42 @@ namespace nn {
 			if (inputLength != expectedInputs()) throw invalid_argument("Input buffer length is invalid.");
 			if (outputLength != expectedOutputs()) throw invalid_argument("Output buffer length is invalid.");
 
-			int inWOffset = 0;
-			int outWOffset = 0;
+			int in = 0;
+			int out = 0;
 			for (int n = 0; n < neuronCount; n++) {
 				double sum = 0;
 
 				// sum weights * input
 				if (mUseInputs) {
 					for (int i = 0; i < mNeuronInputs; i++) {
-						sum += input[i] * inputWeights[inWOffset++];
+						sum += input[in] * inputWeights[in];
+						in++;
 					}
 				}
 				else {
 					for (int i = 0; i < mNeuronInputs; i++) {
-						sum += input[i];
+						sum += input[in];
+						in++;
 					}
+				}
+
+				if (!mIndependentInputs) { // if inputs are non-independent, all neurons ue the same inputs.
+					in = 0;
 				}
 
 				// copy outputs to buffer
 				if (mUseOutputs) {
 					for (int i = 0; i < mNeuronOutputs; i++) {
-						output[i] = activationFunc(sum * outputWeights[outWOffset++]);
+						output[out] = activationFunc(sum * outputWeights[out]);
+						out++;
 					}
 				}
 				else {
 					for (int i = 0; i < mNeuronOutputs; i++) {
-						output[i] = activationFunc(sum);
+						output[out] = activationFunc(sum);
+						out++;
 					}
 				}
-
-				input += mNeuronInputs;
-				output += mNeuronOutputs;
 			}
 		}
 

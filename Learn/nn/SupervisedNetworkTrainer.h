@@ -32,7 +32,7 @@ namespace nn {
 
 	protected:
 
-		virtual void train(NeuralNetwork& network, double* inputs, double* expOutputs, double* buffer, double* outPtr) = 0;
+		virtual void trainOnEpoch(NeuralNetwork& network, double* inputs, double* expOutputs, double* buffer, double* outPtr) = 0;
 		virtual bool checkTrainingInputs(NeuralNetwork& network,
 			double* inputs, size_t inLength, double* expOutputs, size_t outLength) {
 			if (network.expectedInputs() != inLength)
@@ -42,6 +42,7 @@ namespace nn {
 
 			return true;
 		}
+
 	public:
 		SupervisedNetworkTrainer(double learnRate = 0.1, double error = 0.002, int epochs = 1000) {
 			learningRate = learnRate;
@@ -61,7 +62,34 @@ namespace nn {
 			epochTarget = epochs;
 		}
 
-		void trainInplace(NeuralNetwork& network,
+		void train(NeuralNetwork& network, int trainingSets,
+			double** inputs, size_t inLength, double** expOutputs, size_t outLength) {
+
+			int bufferSize = network.expectedBufferSize();
+
+			unique_ptr<double[]> bufferPtr(new double[bufferSize]);
+			double* buffer = bufferPtr.get();
+
+			for (int i = 0; i < trainingSets; i++) {
+				printf("\n\n### Training set #%d\n", i);
+
+				trainOnSet(network, buffer, inputs[i], inLength, expOutputs[i], outLength);
+			}
+		}
+
+		void train(NeuralNetwork& network,
+			double* inputs, size_t inLength, double* expOutputs, size_t outLength) {
+
+			int bufferSize = network.expectedBufferSize();
+
+			unique_ptr<double[]> bufferPtr(new double[bufferSize]);
+			double* buffer = bufferPtr.get();
+
+			trainOnSet(network, buffer, inputs, inLength, expOutputs, outLength);
+		}
+
+	private:
+		void trainOnSet(NeuralNetwork& network, double* buffer,
 			double* inputs, size_t inLength, double* expOutputs, size_t outLength) {
 			if (!checkTrainingInputs(network, inputs, inLength, expOutputs, outLength)) {
 				return;
@@ -89,15 +117,11 @@ namespace nn {
 			}
 			printf(" ]");
 
-			int bufferSize = network.expectedBufferSize();
-
-			unique_ptr<double[]> bufferPtr( new double[bufferSize] );
-			double* buffer = bufferPtr.get(),
-			      * outPtr = nullptr;
-
 			int e = 0;
 			double mse = 0;
 
+			int bufferSize = network.expectedBufferSize();
+			double* outPtr = nullptr;
 			memcpy(buffer, inputs, inLength * sizeof(double));
 
 			for (e = 0; e < epochTarget; e++) {
@@ -108,7 +132,7 @@ namespace nn {
 					break;
 				}
 
-				train(network, inputs, expOutputs, buffer, outPtr);
+				trainOnEpoch(network, inputs, expOutputs, buffer, outPtr);
 			}
 
 			printf("\n%-10s | [ ", "NNOutputs");
@@ -130,11 +154,6 @@ namespace nn {
 				printf("%-10s | %-30s | Epoch %-3d", "Result", "Succeeded - reached MSE limit", e);
 			}
 			printf("\n");
-		}
-
-		NeuralNetwork trainCopy(NeuralNetwork network, double* inputs, size_t inLength, double* outputs, size_t outLength) {
-			trainInplace(network, inputs, inLength, outputs, outLength);
-			return network;
 		}
 	};
 };

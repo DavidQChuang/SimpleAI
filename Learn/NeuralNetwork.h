@@ -30,20 +30,21 @@ namespace nn {
 			}
 
 			int layers = nnLayers.size();
-			int lastL = layers - 1;
-			int firstL = 0;
+			int last = layers - 1;
+			int first = 0;
 
 			int inputsPerNeuron = 1;
 			for (int i = 0; i < layers; i++) {
 				NeuronLayer& layer = nnLayers[i];
 				
-				bool useInputs = (i != lastL);
-				bool useOutputs = (i != firstL);
+				bool indepInputs = i == first;
+				bool useInputs = true; //(i != lastL);
+				bool useOutputs = false; //(i != firstL);
 
-				layer.init(inputsPerNeuron, 1, useInputs, useOutputs);
+				layer.init(inputsPerNeuron, 1, indepInputs, useInputs, useOutputs);
 
-				if (inputsPerNeuron * layer.size() != layer.expectedInputs())
-					throw out_of_range("Layers have incompatible I/O buffer sizes.");
+				if (inputsPerNeuron * (layer.size() * indepInputs + 1 - indepInputs) != layer.expectedInputs())
+					throw out_of_range("Layers have incompatible in/out sizes.");
 
 				inputsPerNeuron = layer.expectedOutputs();
 				ioBufferSize += layer.expectedInputs();

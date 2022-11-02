@@ -50,5 +50,8 @@
     <ClInclude Include="nn\PerceptronTrainer.h">
       <Filter>Header Files\nn</Filter>
     </ClInclude>
+    <ClInclude Include="nn\BackpropagationTrainer.h">
+      <Filter>Header Files\nn</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

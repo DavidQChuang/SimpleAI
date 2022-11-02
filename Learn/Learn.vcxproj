@@ -135,6 +135,7 @@
     <ClInclude Include="DescriptionLearner.h" />
     <ClInclude Include="NeuralNetwork.h" />
     <ClInclude Include="nn\AdalineTrainer.h" />
+    <ClInclude Include="nn\BackpropagationTrainer.h" />
     <ClInclude Include="nn\PerceptronTrainer.h" />
     <ClInclude Include="nn\SupervisedNetworkTrainer.h" />
     <ClInclude Include="nn\NeuronLayer.h" />
