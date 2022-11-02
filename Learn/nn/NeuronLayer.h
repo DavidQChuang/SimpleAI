@@ -49,7 +49,7 @@ namespace nn {
 
 		void initRandomWeights() {
 			if (mUseInputs) {
-				int inputs = expectedInputs();
+				int inputs = mNeuronInputs * neuronCount;
 				inputWeights = vector<double>(inputs);
 				for (int i = 0; i < inputs; i++) {
 					inputWeights[i] = (double)rand() / RAND_MAX;
@@ -57,7 +57,7 @@ namespace nn {
 			}
 
 			if (mUseOutputs) {
-				int outputs = expectedOutputs();
+				int outputs = mNeuronOutputs * neuronCount;
 				outputWeights = vector<double>(outputs);
 				for (int i = 0; i < outputs; i++) {
 					outputWeights[i] = (double)rand() / RAND_MAX;
@@ -67,7 +67,7 @@ namespace nn {
 
 		void initWeights(double value) {
 			if (mUseInputs) {
-				int inputs = expectedInputs();
+				int inputs = mNeuronInputs * neuronCount;
 				inputWeights = vector<double>(inputs);
 				for (int i = 0; i < inputs; i++) {
 					inputWeights[i] = value;
@@ -75,7 +75,7 @@ namespace nn {
 			}
 
 			if (mUseOutputs) {
-				int outputs = expectedOutputs();
+				int outputs = mNeuronOutputs * neuronCount;
 				outputWeights = vector<double>(outputs);
 				for (int i = 0; i < outputs; i++) {
 					outputWeights[i] = value;
