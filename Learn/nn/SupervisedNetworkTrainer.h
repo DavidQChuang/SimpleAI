@@ -15,7 +15,7 @@ namespace nn {
 			for (int i = 0; i < n; i++) {
 				sum += pow(nnEstimate[i] - actual[i], 2);
 			}
-			
+
 			return sum / n;
 		}
 

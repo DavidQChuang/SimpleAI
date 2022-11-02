@@ -31,14 +31,21 @@ namespace nn {
 			double error = expOutputs[0] - outPtr[0]; // target - result, positive if result was lower, negative if result was higher
 			double sum = 0;
 
-			int out = network.expectedInputs();
+			int inputCount = layer->inputsPerNeuron();
+			int outputCount = layer->outputsPerNeuron();
+
+			int inOffset = network.getLayers().size() == 1 ? 0 : network.expectedInputs();
+			double* inPtr = buffer + inOffset;
+
 			for (int n = 0; n < neurons; n++) {
-				sum += buffer[out + n * layer->outputsPerNeuron()];
+				for (int o = 0; o < outputCount; o++) {
+					sum += inPtr[n * outputCount + o];
+				}
 			}
 
 			int in = 0;
 			for (int n = 0; n < neurons; n++) {
-				for (int i = 0; i < layer->inputsPerNeuron(); i++) {
+				for (int i = 0; i < inputCount; i++) {
 					weightsIn[0][n] += learningRate * error * inputs[in] * layer->derivActivationFunc(sum);
 
 					in++;

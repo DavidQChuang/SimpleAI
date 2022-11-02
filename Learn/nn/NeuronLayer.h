@@ -120,7 +120,7 @@ namespace nn {
 				// sum weights * input
 				if (mUseInputs) {
 					for (int i = 0; i < mNeuronInputs; i++) {
-						sum += input[in] * inputWeights[in];
+						sum += input[in] * inputWeights[n * mNeuronInputs + i];
 						in++;
 					}
 				}
@@ -192,32 +192,61 @@ namespace nn {
 		}
 
 		double activationFunc(double v) {
+			double res;
+
+			if (v != v)
+				throw invalid_argument("Activation function input was NaN.");
+
 			switch (func) {
 			case ActFunc::Step:
-				return v < 0 ? 0 : 1;
+				res =  v < 0 ? 0 : 1;
 				break;
+
 			case ActFunc::Linear:
-				return v;
+				res =  v;
+				break;
+
 			case ActFunc::Siglog:
-				return 1 / (1 + exp(-v));
+				res =  1 / (1 + exp(-v));
+				break;
+
 			case ActFunc::Hypertan:
-				return (1 - exp(-v)) / (1 + exp(-v));
+				res =  (1 - exp(-v)) / (1 + exp(-v));
+				break;
+
+			default:
+				throw invalid_argument("There is no function for this activation function type.");
 			}
 
-			throw invalid_argument("There is no function for this activation function type.");
+			if (res != res)
+				throw invalid_argument("Activation function resulted in NaN.");
 		}
 
 		double derivActivationFunc(double v) {
+			double res;
+
+			if (v != v)
+				throw invalid_argument("Activation function deriv input was NaN.");
+
 			switch (func) {
 			case ActFunc::Linear:
-				return 1;
+				res =  1;
+				break;
+
 			case ActFunc::Siglog:
-				return v * (1 - v);
+				res =  v * (1 - v);
+				break;
+
 			case ActFunc::Hypertan:
-				return 1 / pow(cosh(v), 2);
+				res = 1 / pow(cosh(v), 2);
+				break;
+
+			default:
+				throw invalid_argument("There is no derivative for this activation function type.");
 			}
 
-			throw invalid_argument("There is no derivative for this activation function type.");
+			if (res != res)
+				throw invalid_argument("Activation function deriv resulted in NaN.");
 		}
 	};
 }

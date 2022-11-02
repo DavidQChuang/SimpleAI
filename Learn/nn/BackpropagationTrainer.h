@@ -17,6 +17,7 @@ namespace nn {
 
 		void trainOnEpoch(NeuralNetwork& network, double* inputs, double* expOutputs, double* buffer, double* outPtr) {
 			vector<double> layerDelta;
+			vector<double> oldLayerDelta;
 			vector<NeuronLayer>& layers = network.getLayers();
 
 			int out = 0;
@@ -31,7 +32,7 @@ namespace nn {
 					out++;
 				}
 
-				layerDelta.push_back(sumNN - sumExp);
+				layerDelta.push_back(sumExp - sumNN);
 			}
 
 			double* inPtr = outPtr;
@@ -45,29 +46,37 @@ namespace nn {
 				int inputCount = layer.inputsPerNeuron();
 				int in = 0;
 
+				oldLayerDelta = layerDelta;
 				layerDelta.reserve(inputCount);
-				for (int i = layerDelta.size(); i < inputCount; i++) {
-					layerDelta.push_back(0);
+				for (int i = 0; i < inputCount; i++) {
+					if (i >= layerDelta.size()) {
+						layerDelta.push_back(0);
+					}
+					else {
+						layerDelta[i] = 0;
+					}
 				}
 
 				for (int n = 0; n < layer.size(); n++) {
-					int inSum = 0;
+					double weightedSum = 0;
 
 					// sum inputs
 					for (int i = 0; i < inputCount; i++) {
-						inSum += inPtr[in];
+						int w = n * inputCount + i;
+
+						weightedSum += inPtr[in] * weightsIn[w];
 						in++;
 					}
 					in -= inputCount;
 
-					double delta = layerDelta[n] * layer.derivActivationFunc(inSum);
+					double delta = oldLayerDelta[n] * layer.derivActivationFunc(weightedSum);
 
 					// adjust weights and set deltas for next layer
 					for (int i = 0; i < inputCount; i++) {
 						int w = n * inputCount + i;
 
 						layerDelta[i] += delta * weightsIn[w];
-						weightsIn[w] += -learningRate * delta * inPtr[in];
+						weightsIn[w] += learningRate * delta * inPtr[in];
 						in++;
 					}
 

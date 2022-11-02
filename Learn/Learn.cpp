@@ -123,7 +123,7 @@ void nnAdaline() {
 
 	net.getLayers()[1].weightsIn()[0] = 1;
 
-	nn::BackpropagationTrainer trainer = nn::BackpropagationTrainer(0.3, 1e-12, 100);
+	nn::AdalineTrainer trainer = nn::AdalineTrainer(0.3, 1e-42, 400);
 
 	trainNN(net, trainer, TRAINING_SETS, trainingIn, INPUTS, trainingOut, OUTPUTS);
 
@@ -169,7 +169,7 @@ void nnBackpropagation() {
 		OUTPUT{ 0.0, 1.0 },
 		OUTPUT{ 0.0, 1.0 }
 	};
-	nn::BackpropagationTrainer trainer = nn::BackpropagationTrainer(0.1, 1e-4, 1000);
+	nn::BackpropagationTrainer trainer = nn::BackpropagationTrainer(0.1, 1e-4, 100);
 
 	trainNN(net, trainer, TRAINING_SETS, trainingIn, INPUTS, trainingOut, OUTPUTS);
 
@@ -180,19 +180,29 @@ void nnBackpropagation() {
 int seed = 0;
 
 void execute(char ch) {
-	switch (ch) {
-	case 'q':
-		return;
+	if (ch == 'q') {
+		exit(0);
+	}
+	else if (ch == '1') {
+		descriptionLearner();
+	}
+	else if (ch == '2') {
+		nnPerceptron();
+	}
+	else if (ch == '3') {
+		nnAdaline();
+	}
+	else if (ch == '4') {
+		nnBackpropagation();
+	}
+	/*else if (ch == 'n') {
+		printf("Enter training set: ");
 
-	case '1': descriptionLearner();
-		break;
-	case '2': nnPerceptron();
-		break;
-	case '3': nnAdaline();
-		break;
-	case '4': nnBackpropagation();
-		break;
-	case 'r':
+		string val;
+		getline(cin, val);
+
+	}*/
+	else if (ch == 'r') {
 		printf("Enter seed: ");
 
 		string val;
@@ -200,8 +210,6 @@ void execute(char ch) {
 
 		seed = stoi(val);
 		srand(seed);
-
-		break;
 
 	} // switch (ch)
 }
@@ -215,6 +223,7 @@ int main()
 		printf("  2: Neural Network - Perceptron\n");
 		printf("  3: Neural Network - Adaline\n");
 		printf("  4: Neural Network - Backpropagation\n");
+		//printf("  n: Neural Network - Mix & Match\n");
 		printf("  r: Reseed\n");
 		printf("  q: quit\n");
 		printf("? ");
