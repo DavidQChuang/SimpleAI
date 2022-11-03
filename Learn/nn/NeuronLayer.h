@@ -34,8 +34,8 @@ namespace nn {
 		}
 
 		void init(int inputsPerNeuron, int outputsPerNeuron, bool independentInputs, bool useInputs, bool useOutputs) {
-			if (inputsPerNeuron < 1) throw invalid_argument("Uninitialized layer.");
-			if (outputsPerNeuron < 1) throw invalid_argument("Uninitialized layer.");
+			if (inputsPerNeuron < 0) throw invalid_argument("Layer must have at least 0 inputs per neuron.");
+			if (outputsPerNeuron < 0) throw invalid_argument("Layer must have at least 0 outputs per neuron.");
 
 			mNeuronInputs = inputsPerNeuron;
 			mNeuronOutputs = outputsPerNeuron;
@@ -163,7 +163,7 @@ namespace nn {
 
 			for (int n = 0; n < neuronCount; n++) {
 				if (mUseInputs) {
-					printf("\n%-7d | IN: [ ", n);
+					printf("\n%-7d | IN : [ ", n);
 					for (int i = 0; i < mNeuronInputs; i++) {
 						printf("%.8f", inputWeights[n * mNeuronInputs + i]);
 

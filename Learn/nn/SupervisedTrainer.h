@@ -3,7 +3,7 @@
 #include "../NeuralNetwork.h"
 
 namespace nn {
-	class SupervisedNetworkTrainer {
+	class SupervisedTrainer {
 	protected:
 		int				epochTarget;
 		double			errorTarget;
@@ -44,7 +44,7 @@ namespace nn {
 		}
 
 	public:
-		SupervisedNetworkTrainer(double learnRate = 0.1, double error = 0.002, int epochs = 1000) {
+		SupervisedTrainer(double learnRate = 0.1, double error = 0.002, int epochs = 1000) {
 			learningRate = learnRate;
 			errorTarget = error;
 			epochTarget = epochs;
@@ -151,7 +151,7 @@ namespace nn {
 				printf("%-10s | %-30s | Epoch %-3d", "Result", "Failed - Reached epoch limit", e);
 			}
 			else {
-				printf("%-10s | %-30s | Epoch %-3d", "Result", "Succeeded - reached MSE limit", e);
+				printf("%-10s | %-30s | Epoch %-3d", "Result", "Succeeded - Reached minimum MSE target", e);
 			}
 			printf("\n");
 		}

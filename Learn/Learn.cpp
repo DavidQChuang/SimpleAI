@@ -9,10 +9,12 @@
 #include "DescriptionLearner.h"
 #include "ml/DLearnerListData.h"
 
-#include "nn/BackpropagationTrainer.h"
 #include "NeuralNetwork.h"
 #include "nn/PerceptronTrainer.h"
 #include "nn/AdalineTrainer.h"
+#include "nn/BackpropagationTrainer.h"
+#include "nn/WTATrainer.h"
+#include "nn/KohonenTrainer.h"
 
 void descriptionLearner() {
 	ml::DescriptionLearner desc;
@@ -27,9 +29,11 @@ void descriptionLearner() {
 
 #define DELETE_TRAINING_DATA(n) for(int _i = 0; _i < TRAINING_SETS; _i++) \
 { delete[] n[_i]; } delete[] n; n = nullptr;
+#define DELETE_VALIDATION_DATA(n) for(int _i = 0; _i < VALIDATION_SETS; _i++) \
+{ delete[] n[_i]; } delete[] n; n = nullptr;
 
 template<class T>
-inline void trainNN(nn::NeuralNetwork& net, T trainer, 
+inline void trainNN_Supervised(nn::NeuralNetwork& net, T trainer, 
 	int TRAINING_SETS, double** trainingIn, int INPUTS, double** trainingOut,
 	int OUTPUTS) {
 
@@ -47,9 +51,71 @@ inline void trainNN(nn::NeuralNetwork& net, T trainer,
 	}
 	auto stop = chrono::high_resolution_clock::now();
 
-	printf("### NETWORK AFTER TRAINING ###\n---------------------------\nExec time: %lldus\n",
+	printf("\n### NETWORK AFTER TRAINING ###\n---------------------------\nExec time: %lldus\n",
 		chrono::duration_cast<chrono::microseconds>(stop - start).count());
 	net.displayChange(newNet);
+}
+
+template<class T>
+inline void trainNN_Unsupervised(nn::NeuralNetwork& net, T trainer,
+	int TRAINING_SETS, double** trainingIn, int INPUTS, int OUTPUTS,
+	double** validation, int VALIDATION_SETS) {
+
+	printf("### TRAINING NETWORK ###\n---------------------------\n");
+
+	nn::NeuralNetwork newNet = nn::NeuralNetwork(net);
+
+	auto start = chrono::high_resolution_clock::now();
+	try {
+		trainer.train(newNet, TRAINING_SETS, trainingIn, INPUTS);
+	}
+	catch (exception e) {
+		printf("\n\n!!! ERROR !!! Threw exception while training: %s", e.what());
+		return;
+	}
+	auto stop = chrono::high_resolution_clock::now();
+
+	printf("\n### NETWORK AFTER TRAINING ###\n---------------------------\nExec time: %lldus\n",
+		chrono::duration_cast<chrono::microseconds>(stop - start).count());
+	net.displayChange(newNet);
+
+	printf("\n### VERIFICATION ###\n---------------------------\n");
+	for (int s = 0; s < VALIDATION_SETS; s++) {
+		double* results = net.execute(validation[s], INPUTS);
+
+		printf("\n%-7d | IN : [ ", s);
+		for (int i = 0; i < INPUTS; i++) {
+			printf("%.8f", validation[s][i]);
+
+			if (i + 1 != INPUTS) {
+				printf(", ");
+			}
+			else break;
+		}
+		printf(" ]");
+
+		int cluster = 0;
+		double maxRes = DBL_MIN;
+		printf("\n%-7d | OUT: [ ", s);
+		for (int o = 0; o < OUTPUTS; o++) {
+			double res = results[o];
+
+			printf("%.8f", res);
+
+			if (res > maxRes) {
+				cluster = o;
+				maxRes = res;
+			}
+
+			if (o + 1 != OUTPUTS) {
+				printf(", ");
+			}
+			else break;
+		}
+		printf(" ]");
+
+		printf("\n%-7s | Cluster %d", "Results", cluster + 1);
+	}
 }
 
 // Training a single-layer perceptron to emulate an AND operation.
@@ -81,7 +147,7 @@ void nnPerceptron() {
 
 	nn::PerceptronTrainer trainer = nn::PerceptronTrainer(0.01, 0.002, 100);
 
-	trainNN(net, trainer, TRAINING_SETS, trainingIn, INPUTS, trainingOut, OUTPUTS);
+	trainNN_Supervised(net, trainer, TRAINING_SETS, trainingIn, INPUTS, trainingOut, OUTPUTS);
 
 	DELETE_TRAINING_DATA(trainingIn);
 	DELETE_TRAINING_DATA(trainingOut);
@@ -125,7 +191,7 @@ void nnAdaline() {
 
 	nn::AdalineTrainer trainer = nn::AdalineTrainer(0.3, 1e-42, 400);
 
-	trainNN(net, trainer, TRAINING_SETS, trainingIn, INPUTS, trainingOut, OUTPUTS);
+	trainNN_Supervised(net, trainer, TRAINING_SETS, trainingIn, INPUTS, trainingOut, OUTPUTS);
 
 	DELETE_TRAINING_DATA(trainingIn);
 	DELETE_TRAINING_DATA(trainingOut);
@@ -171,10 +237,83 @@ void nnBackpropagation() {
 	};
 	nn::BackpropagationTrainer trainer = nn::BackpropagationTrainer(0.1, 1e-4, 100);
 
-	trainNN(net, trainer, TRAINING_SETS, trainingIn, INPUTS, trainingOut, OUTPUTS);
+	trainNN_Supervised(net, trainer, TRAINING_SETS, trainingIn, INPUTS, trainingOut, OUTPUTS);
 
 	DELETE_TRAINING_DATA(trainingIn);
 	DELETE_TRAINING_DATA(trainingOut);
+}
+
+// Training a self-organizing map to categorize inputs.
+// The inputs are ...
+// The training algorithm used adjusts weights ...
+void nnWTA() {
+	nn::NeuralNetwork net({
+		nn::NeuronLayer(3, nn::ActFunc::Linear, "in"),
+		nn::NeuronLayer(2, nn::ActFunc::Linear, "out")
+		});
+
+	constexpr int TRAINING_SETS = 6;
+	constexpr int VALIDATION_SETS = 2;
+	constexpr int INPUTS = 3;
+	constexpr int OUTPUTS = 2;
+
+	double** training = new double* [TRAINING_SETS] {
+		INPUT{  1.0, -1.0,  1.0 },
+		INPUT{ -1.0, -1.0, -1.0 },
+		INPUT{ -1.0, -1.0,  1.0 },
+		INPUT{  1.0,  1.0, -1.0 },
+		INPUT{ -1.0,  1.0,  1.0 },
+		INPUT{  1.0, -1.0, -1.0 }
+	};
+	double** validation = new double* [VALIDATION_SETS] {
+		INPUT{ -1.0, 1.0, -1.0 },
+		INPUT{  1.0, 1.0,  1.0 }
+	};
+
+	nn::WTATrainer trainer = nn::WTATrainer(0.1, 1e-4, 100);
+
+	trainNN_Unsupervised(net, trainer, TRAINING_SETS, training,
+		INPUTS, OUTPUTS, validation, VALIDATION_SETS);
+
+	DELETE_TRAINING_DATA(training);
+	DELETE_VALIDATION_DATA(validation);
+}
+
+// Training a self-organizing map to categorize inputs.
+// The inputs are ...
+// The training algorithm used adjusts weights ...
+void nnKohonen() {
+	nn::NeuralNetwork net({
+		nn::NeuronLayer(3, nn::ActFunc::Siglog, "in"),
+		nn::NeuronLayer(3, nn::ActFunc::Siglog, "hidden"),
+		nn::NeuronLayer(2, nn::ActFunc::Linear, "out")
+		});
+
+	constexpr int TRAINING_SETS = 6;
+	constexpr int VALIDATION_SETS = 2;
+	constexpr int INPUTS = 3;
+	constexpr int OUTPUTS = 2;
+
+	double** training = new double* [TRAINING_SETS] {
+		INPUT{  1.0, -1.0,  1.0 },
+		INPUT{ -1.0, -1.0, -1.0 },
+		INPUT{ -1.0, -1.0,  1.0 },
+		INPUT{  1.0,  1.0, -1.0 },
+		INPUT{ -1.0,  1.0,  1.0 },
+		INPUT{  1.0, -1.0, -1.0 }
+	};
+	double** validation = new double* [VALIDATION_SETS] {
+		INPUT{ -1.0, 1.0, -1.0 },
+		INPUT{  1.0, 1.0,  1.0 }
+	};
+
+	nn::KohonenTrainer trainer = nn::KohonenTrainer(0.1, 1e-4, 100);
+
+	trainNN_Unsupervised(net, trainer, TRAINING_SETS, training,
+		INPUTS, OUTPUTS, validation, VALIDATION_SETS);
+
+	DELETE_TRAINING_DATA(training);
+	DELETE_VALIDATION_DATA(validation);
 }
 
 int seed = 0;
@@ -194,6 +333,12 @@ void execute(char ch) {
 	}
 	else if (ch == '4') {
 		nnBackpropagation();
+	}
+	else if (ch == '5') {
+		nnWTA();
+	}
+	else if (ch == '6') {
+		nnKohonen();
 	}
 	/*else if (ch == 'n') {
 		printf("Enter training set: ");
@@ -220,9 +365,11 @@ int main()
 	for (;;) {
 		printf("Choose a program:\n");
 		printf("  1: Description Learner\n");
-		printf("  2: Neural Network - Perceptron\n");
-		printf("  3: Neural Network - Adaline\n");
-		printf("  4: Neural Network - Backpropagation\n");
+		printf("  2: Neural Network - Perceptron SLP\n");
+		printf("  3: Neural Network - Adaline SLP\n");
+		printf("  4: Neural Network - Backpropagation MLP\n");
+		printf("  5: Neural Network - Winner Takes All SOM\n");
+		printf("  6: Neural Network - Kohonen SOM\n");
 		//printf("  n: Neural Network - Mix & Match\n");
 		printf("  r: Reseed\n");
 		printf("  q: quit\n");

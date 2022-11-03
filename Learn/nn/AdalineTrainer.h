@@ -1,9 +1,9 @@
 #pragma once
 
-#include "SupervisedNetworkTrainer.h"
+#include "SupervisedTrainer.h"
 
 namespace nn {
-	class AdalineTrainer : public SupervisedNetworkTrainer {
+	class AdalineTrainer : public SupervisedTrainer {
 	private:
 		NeuronLayer* layer;
 		vector<double>* weightsIn;
@@ -12,7 +12,7 @@ namespace nn {
 	protected:
 		bool checkTrainingInputs(NeuralNetwork& network,
 			double* inputs, size_t inLength, double* expOutputs, size_t outLength) override {
-			bool success = SupervisedNetworkTrainer::checkTrainingInputs(network, inputs, inLength, expOutputs, outLength);
+			bool success = SupervisedTrainer::checkTrainingInputs(network, inputs, inLength, expOutputs, outLength);
 
 			if (network.getLayers().size() > 2)
 				throw invalid_argument("Adaline requires 1 inout layer or 1 in + 1 out layer. ");
@@ -46,7 +46,7 @@ namespace nn {
 			int in = 0;
 			for (int n = 0; n < neurons; n++) {
 				for (int i = 0; i < inputCount; i++) {
-					weightsIn[0][n] += learningRate * error * inputs[in] * layer->derivActivationFunc(sum);
+					(*weightsIn)[n] += learningRate * error * inputs[in] * layer->derivActivationFunc(sum);
 
 					in++;
 				}
@@ -55,6 +55,6 @@ namespace nn {
 
 	public:
 		AdalineTrainer(double learnRate = 0.1, double error = 0.002, int epochs = 1000)
-			: SupervisedNetworkTrainer(learnRate, error, epochs) { }
+			: SupervisedTrainer(learnRate, error, epochs) { }
 	};
 }

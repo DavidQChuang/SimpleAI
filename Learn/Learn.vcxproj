@@ -136,9 +136,12 @@
     <ClInclude Include="NeuralNetwork.h" />
     <ClInclude Include="nn\AdalineTrainer.h" />
     <ClInclude Include="nn\BackpropagationTrainer.h" />
+    <ClInclude Include="nn\LevenbergMarquadtTrainer.h" />
     <ClInclude Include="nn\PerceptronTrainer.h" />
-    <ClInclude Include="nn\SupervisedNetworkTrainer.h" />
     <ClInclude Include="nn\NeuronLayer.h" />
+    <ClInclude Include="nn\SupervisedTrainer.h" />
+    <ClInclude Include="nn\UnsupervisedTrainer.h" />
+    <ClInclude Include="nn\WTATrainer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -38,9 +38,6 @@
     <ClInclude Include="DLearnerListData.h">
       <Filter>Header Files\ml</Filter>
     </ClInclude>
-    <ClInclude Include="nn\SupervisedNetworkTrainer.h">
-      <Filter>Header Files\nn</Filter>
-    </ClInclude>
     <ClInclude Include="nn\NeuronLayer.h">
       <Filter>Header Files\nn</Filter>
     </ClInclude>
@@ -51,6 +48,18 @@
       <Filter>Header Files\nn</Filter>
     </ClInclude>
     <ClInclude Include="nn\BackpropagationTrainer.h">
+      <Filter>Header Files\nn</Filter>
+    </ClInclude>
+    <ClInclude Include="nn\LevenbergMarquadtTrainer.h">
+      <Filter>Header Files\nn</Filter>
+    </ClInclude>
+    <ClInclude Include="nn\SupervisedTrainer.h">
+      <Filter>Header Files\nn</Filter>
+    </ClInclude>
+    <ClInclude Include="nn\UnsupervisedTrainer.h">
+      <Filter>Header Files\nn</Filter>
+    </ClInclude>
+    <ClInclude Include="nn\WTATrainer.h">
       <Filter>Header Files\nn</Filter>
     </ClInclude>
   </ItemGroup>
