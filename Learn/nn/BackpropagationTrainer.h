@@ -5,15 +5,10 @@
 namespace nn {
 	class BackpropagationTrainer : public SupervisedTrainer {
 	protected:
-		bool checkTrainingInputs(NeuralNetwork& network,
+		/*void checkTrainingInputs(NeuralNetwork& network,
 			double* inputs, size_t inLength, double* expOutputs, size_t outLength) override {
-			bool success = SupervisedTrainer::checkTrainingInputs(network, inputs, inLength, expOutputs, outLength);
-
-			if (network.getLayers().size() < 2)
-				throw invalid_argument("Backpropagation requires at least 2 layers. ");
-
-			return success;
-		}
+			SupervisedTrainer::checkTrainingInputs(network, inputs, inLength, expOutputs, outLength);
+		}*/
 
 		void trainOnEpoch(NeuralNetwork& network, double* inputs, double* expOutputs, double* buffer, double* outPtr) {
 			vector<double> layerDelta;

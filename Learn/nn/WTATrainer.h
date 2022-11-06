@@ -7,13 +7,11 @@ namespace nn {
 	private:
 
 	protected:
-		bool checkTrainingInputs(NeuralNetwork& network, double* inputs, size_t inLength) override {
-			bool success = UnsupervisedTrainer::checkTrainingInputs(network, inputs, inLength);
+		void checkTrainingInputs(NeuralNetwork& network, double* inputs, size_t inLength) override {
+			UnsupervisedTrainer::checkTrainingInputs(network, inputs, inLength);
 
 			if (network.getLayers().size() > 2)
 				throw invalid_argument("Winner-takes-all trainer requires 1 inout layer or 1 in + 1 out layer. ");
-
-			return success;
 		}
 
 		void trainOnEpoch(NeuralNetwork& network, double* inputs, double* buffer, double* outPtr) {

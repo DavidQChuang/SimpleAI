@@ -42,13 +42,7 @@ inline void trainNN_Supervised(nn::NeuralNetwork& net, T trainer,
 	nn::NeuralNetwork newNet = nn::NeuralNetwork(net);
 
 	auto start = chrono::high_resolution_clock::now();
-	try {
-		trainer.train(newNet, TRAINING_SETS, trainingIn, INPUTS, trainingOut, OUTPUTS);
-	}
-	catch (exception e) {
-		printf("\n\n!!! ERROR !!! Threw exception while training: %s", e.what());
-		return;
-	}
+	trainer.train(newNet, TRAINING_SETS, trainingIn, INPUTS, trainingOut, OUTPUTS);
 	auto stop = chrono::high_resolution_clock::now();
 
 	printf("\n### NETWORK AFTER TRAINING ###\n---------------------------\nExec time: %lldus\n",
@@ -66,13 +60,7 @@ inline void trainNN_Unsupervised(nn::NeuralNetwork& net, T trainer,
 	nn::NeuralNetwork newNet = nn::NeuralNetwork(net);
 
 	auto start = chrono::high_resolution_clock::now();
-	try {
-		trainer.train(newNet, TRAINING_SETS, trainingIn, INPUTS);
-	}
-	catch (exception e) {
-		printf("\n\n!!! ERROR !!! Threw exception while training: %s", e.what());
-		return;
-	}
+	trainer.train(newNet, TRAINING_SETS, trainingIn, INPUTS);
 	auto stop = chrono::high_resolution_clock::now();
 
 	printf("\n### NETWORK AFTER TRAINING ###\n---------------------------\nExec time: %lldus\n",
@@ -161,7 +149,7 @@ void nnPerceptron() {
 void nnAdaline() {
 	nn::NeuralNetwork net({
 		nn::NeuronLayer(4, nn::ActFunc::Linear, "in"),
-		nn::NeuronLayer(1, nn::ActFunc::Linear, "out")
+		nn::NeuronLayer(1, nn::ActFunc::Linear, false, false, "out")
 		});
 
 	constexpr int TRAINING_SETS = 7;
@@ -180,16 +168,16 @@ void nnAdaline() {
 	double** trainingOut = new double*[TRAINING_SETS] {
 		OUTPUT { 0.80 },
 		OUTPUT { 0.59 },
-		OUTPUT { 0.24 },
+		OUTPUT { 0.23 },
 		OUTPUT { 0.45 },
 		OUTPUT { 0.74 },
 		OUTPUT { 0.63 },
 		OUTPUT { 0.10 },
 	};
 
-	net.getLayers()[1].weightsIn()[0] = 1;
+	//net.getLayers()[1].weightsIn()[0] = 1;
 
-	nn::AdalineTrainer trainer = nn::AdalineTrainer(0.3, 1e-42, 400);
+	nn::AdalineTrainer trainer = nn::AdalineTrainer(0.01, 2e-4, 1000);
 
 	trainNN_Supervised(net, trainer, TRAINING_SETS, trainingIn, INPUTS, trainingOut, OUTPUTS);
 
@@ -202,7 +190,7 @@ void nnAdaline() {
 // The training algorithm used adjusts weights ...
 void nnBackpropagation() {
 	nn::NeuralNetwork net({
-		nn::NeuronLayer(3, nn::ActFunc::Siglog, "in"),
+		nn::NeuronLayer(3, nn::ActFunc::Linear, true, false, "in"),
 		nn::NeuronLayer(3, nn::ActFunc::Siglog, "hidden"),
 		nn::NeuronLayer(2, nn::ActFunc::Linear, "out")
 		});
@@ -235,7 +223,7 @@ void nnBackpropagation() {
 		OUTPUT{ 0.0, 1.0 },
 		OUTPUT{ 0.0, 1.0 }
 	};
-	nn::BackpropagationTrainer trainer = nn::BackpropagationTrainer(0.1, 1e-4, 100);
+	nn::BackpropagationTrainer trainer = nn::BackpropagationTrainer(0.05, 1e-4, 1000);
 
 	trainNN_Supervised(net, trainer, TRAINING_SETS, trainingIn, INPUTS, trainingOut, OUTPUTS);
 

@@ -35,12 +35,12 @@ namespace nn {
 
 		virtual void trainOnEpoch(NeuralNetwork& network, double* inputs, double* buffer, double* outPtr) = 0;
 
-		virtual bool checkTrainingInputs(NeuralNetwork& network, double* inputs, size_t inLength) {
+		virtual void checkTrainingInputs(NeuralNetwork& network, double* inputs, size_t inLength) {
 			if (network.expectedInputs() != inLength)
 				throw invalid_argument("Input of network and size of input buffer don't match.");
-
-			return true;
 		}
+
+		virtual void cleanUp() {}
 
 	public:
 		UnsupervisedTrainer(double learnRate = 0.1, double error = 0.002, int epochs = 1000) {
@@ -61,78 +61,106 @@ namespace nn {
 			epochTarget = epochs;
 		}
 
-		void train(NeuralNetwork& network, int trainingSets, double** inputs, size_t inLength) {
+		void train(NeuralNetwork& network, int trainingSets, double** inputSet, size_t inLength) {
 
 			int bufferSize = network.expectedBufferSize();
 
 			unique_ptr<double[]> bufferPtr(new double[bufferSize]);
 			double* buffer = bufferPtr.get();
 
-			for (int i = 0; i < trainingSets; i++) {
-				printf("\n\n### Training set #%d\n", i);
+			int e = 0;
+			try {
+				while (e < epochTarget) {
+					for (int i = 0; i < trainingSets; i++) {
+						double* inputs = inputSet[i];
+						double* outPtr = executeOnSet(network, buffer,
+							inputs, inLength);
 
-				trainOnSet(network, buffer, inputs[i], inLength);
+						trainOnEpoch(network, inputs, buffer, outPtr);
+					}
+
+					e++;
+				}
 			}
-		}
-
-		void train(NeuralNetwork& network, double* inputs, size_t inLength) {
-
-			int bufferSize = network.expectedBufferSize();
-
-			unique_ptr<double[]> bufferPtr(new double[bufferSize]);
-			double* buffer = bufferPtr.get();
-
-			trainOnSet(network, buffer, inputs, inLength);
-		}
-
-	private:
-		void trainOnSet(NeuralNetwork& network, double* buffer, double* inputs, size_t inLength) {
-			if (!checkTrainingInputs(network, inputs, inLength)) {
+			catch (exception ex) {
+				printf("\n\n!!! ERROR: Threw exception while training: %s", ex.what());
+				printf("\nFailed on epoch %d", e);
+				displayResults(network, buffer, trainingSets,
+					inputSet, inLength, e);
 				return;
 			}
 
-			printf("\n%-10s | [ ", "Inputs");
-			for (int i = 0;;) {
-				printf("%.3f", inputs[i]);
+			cleanUp();
 
-				if (++i < inLength) {
-					printf(", ");
-				}
-				else break;
-			}
-			printf(" ]");
+			displayResults(network, buffer, trainingSets,
+				inputSet, inLength, e);
+		}
 
-			int e = 0;
-			double mse = 0;
+		void train(NeuralNetwork& network, double* inputs, size_t inLength) {
+			unique_ptr<double*[]> inputSet(new double*[1] { inputs });
 
-			int bufferSize = network.expectedBufferSize();
-			double* outPtr = nullptr;
+			train(network, 1, inputSet.get(), inLength);
+		}
+
+	private:
+		double* executeOnSet(NeuralNetwork& network, double* buffer,
+			double* inputs, size_t inLength) {
+
+			checkTrainingInputs(network, inputs, inLength);
 			memcpy(buffer, inputs, inLength * sizeof(double));
+			return network.executeToIOArray(buffer, inLength, network.expectedBufferSize());
+		}
 
-			for (e = 0; e < epochTarget; e++) {
-				outPtr = network.executeToIOArray(buffer, inLength, bufferSize);
+		void displayResults(NeuralNetwork& network, double* buffer,
+			int trainingSets, double** inputSet, int inLength,
+			int e) {
+			bool failed = false;
 
-				trainOnEpoch(network, inputs, buffer, outPtr);
-			}
+			for (int i = 0; i < trainingSets; i++) {
+				double* inputs = inputSet[i];
 
-			int outputCount = network.expectedOutputs();
-			printf("\n%-10s | [ ", "NNOutputs");
-			for (int i = 0;;) {
-				printf("%.6f", outPtr[i]);
+				printf("\n\n### Training set #%d\n", i);
+				printf("\n%-10s | [ ", "Inputs");
+				for (int i = 0;;) {
+					printf("%.3f", inputs[i]);
 
-				if (++i < outputCount) {
-					printf(", ");
+					if (++i < inLength) {
+						printf(", ");
+					}
+					else break;
 				}
-				else break;
-			}
-			printf(" ]");
-			printf("\n");
+				printf(" ]");
 
-			if (e == epochTarget) {
+				try {
+					double* outPtr = executeOnSet(network, buffer,
+						inputs, inLength);
+
+					printf("\n%-10s | [ ", "NNOutputs");
+					for (int i = 0;;) {
+						printf("%.6f", outPtr[i]);
+
+						if (++i < network.expectedOutputs()) {
+							printf(", ");
+						}
+						else break;
+					}
+					printf(" ]");
+				}
+				catch (exception ex) {
+					printf("\n%-10s | [ FAILED ]", "NNOutputs");
+					failed = true;
+				}
+			}
+			printf("\n\n### Final Results");
+
+			if (failed) {
+				printf("%-10s | %-30s | Epoch %-3d", "Result", "[ FAILED ]", e);
+			}
+			else if (e == epochTarget) {
 				printf("%-10s | %-30s | Epoch %-3d", "Result", "Reached epoch limit", e);
 			}
 			else {
-				printf("%-10s | %-30s | Epoch %-3d", "Result", "Reached minimum rate limit", e);
+				printf("%-10s | %-30s | Epoch %-3d", "Result", "Reached minimum rate target", e);
 			}
 			printf("\n");
 		}

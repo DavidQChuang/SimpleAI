@@ -10,9 +10,9 @@ namespace nn {
 		int neurons;
 
 	protected:
-		bool checkTrainingInputs(NeuralNetwork& network,
+		void checkTrainingInputs(NeuralNetwork& network,
 			double* inputs, size_t inLength, double* expOutputs, size_t outLength) override {
-			bool success = SupervisedTrainer::checkTrainingInputs(network, inputs, inLength, expOutputs, outLength);
+			SupervisedTrainer::checkTrainingInputs(network, inputs, inLength, expOutputs, outLength);
 
 			if (network.getLayers().size() > 2)
 				throw invalid_argument("Perceptron trainer requires 1 inout layer or 1 in + 1 out layer. ");
@@ -23,8 +23,6 @@ namespace nn {
 			layer = &network.getLayers()[0];
 			weightsIn = &layer->weightsIn();
 			neurons = layer->size();
-
-			return success;
 		}
 
 		void trainOnEpoch(NeuralNetwork& network, double* inputs, double* expOutputs, double* buffer, double* outPtr) {

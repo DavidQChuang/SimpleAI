@@ -22,6 +22,10 @@ namespace nn {
 
 		ActFunc func = ActFunc::Step;
 
+		bool overrideUseInputs = false;
+		bool overrideUseOutputs = false;
+		bool overrideIndependentInputs = false;
+
 		string	layerName = "";
 
 	public:
@@ -33,6 +37,17 @@ namespace nn {
 			layerName = name;
 		}
 
+		NeuronLayer(int count, ActFunc f, bool independentInputs, bool useInputs, string name = "Layer") 
+			: NeuronLayer(count, f, name) {
+			overrideUseInputs = true;
+			overrideUseOutputs = true;
+			overrideIndependentInputs = true;
+
+			mUseInputs = useInputs;
+			mUseOutputs = false;
+			mIndependentInputs = independentInputs;
+		}
+
 		void init(int inputsPerNeuron, int outputsPerNeuron, bool independentInputs, bool useInputs, bool useOutputs) {
 			if (inputsPerNeuron < 0) throw invalid_argument("Layer must have at least 0 inputs per neuron.");
 			if (outputsPerNeuron < 0) throw invalid_argument("Layer must have at least 0 outputs per neuron.");
@@ -40,9 +55,15 @@ namespace nn {
 			mNeuronInputs = inputsPerNeuron;
 			mNeuronOutputs = outputsPerNeuron;
 
-			mIndependentInputs = independentInputs;
-			mUseInputs = useInputs;
-			mUseOutputs = useOutputs;
+			if (!overrideUseInputs) {
+				mUseInputs = useInputs;
+			}
+			if (!overrideUseOutputs) {
+				mUseOutputs = useOutputs;
+			}
+			if (!overrideIndependentInputs) {
+				mIndependentInputs = independentInputs;
+			}
 
 			initRandomWeights();
 		}
@@ -97,7 +118,18 @@ namespace nn {
 		inline bool independentInputs() { return mIndependentInputs;}
 
 		inline vector<double>& weightsIn() {
-			return inputWeights;
+			if (mUseInputs) {
+				return inputWeights;
+			}
+			else {
+				int inputs = mNeuronInputs * neuronCount;
+				auto weights = vector<double>(inputs);
+				for (int i = 0; i < inputs; i++) {
+					weights[i] = 1;
+				}
+
+				return weights;
+			}
 		}
 		inline vector<double>& weightsOut() {
 			return outputWeights;
@@ -207,11 +239,11 @@ namespace nn {
 				break;
 
 			case ActFunc::Siglog:
-				res =  1 / (1 + exp(-v));
+				res =  1.0 / (1.0 + exp(-v));
 				break;
 
 			case ActFunc::Hypertan:
-				res =  (1 - exp(-v)) / (1 + exp(-v));
+				res =  (1.0 - exp(-v)) / (1.0 + exp(-v));
 				break;
 
 			default:
@@ -234,11 +266,11 @@ namespace nn {
 				break;
 
 			case ActFunc::Siglog:
-				res =  v * (1 - v);
+				res =  v * (1.0 - v);
 				break;
 
 			case ActFunc::Hypertan:
-				res = 1 / pow(cosh(v), 2);
+				res = 1.0 / pow(cosh(v), 2);
 				break;
 
 			default:
