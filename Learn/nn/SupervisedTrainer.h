@@ -51,6 +51,7 @@ namespace nn {
 			epochTarget = epochs;
 		}
 
+		const int MAX_MSE_HISTORY = 15;
 		void train(NeuralNetwork& network, int trainingSets,
 			double** inputSet, size_t inLength, double** expOutputSet, size_t outLength) {
 
@@ -58,6 +59,8 @@ namespace nn {
 
 			unique_ptr<double[]> bufferPtr(new double[bufferSize]);
 			double* buffer = bufferPtr.get();
+
+			vector<double> mseHistory;
 
 			double mse;
 			int e = 0;
@@ -78,8 +81,9 @@ namespace nn {
 					}
 
 					mse = error / trainingSets;
+					mseHistory.push_back(mse);
 
-					if (mse < errorTarget) break;
+					if (mse <= errorTarget) break;
 
 					e++;
 				}
@@ -87,15 +91,34 @@ namespace nn {
 			catch (exception ex) {
 				printf("\n\n!!! ERROR: Threw exception while training: %s", ex.what());
 				printf("\nFailed on epoch %d with MSE of %.6e", e, mse);
-				displayResults(network, buffer, trainingSets,
-					inputSet, inLength, expOutputSet, outLength, mse, e);
-				return;
 			}
 
 			cleanUp();
-
 			displayResults(network, buffer, trainingSets,
 				inputSet, inLength, expOutputSet, outLength, mse, e);
+
+
+			printf("%-10s | -", "MSE Trend");
+
+			double prevMse = 0;
+			int mseRecordMod = epochTarget / MAX_MSE_HISTORY;
+			for (int i = 0; i < e; i++) {
+				if (i < 5 || i % mseRecordMod == 0 || e - i <= 5) {
+					mse = mseHistory[i];
+
+					const char* result;
+					if (mse > prevMse)
+						result = "\x1B[31m>\033[0m";
+					else if (mse < prevMse)
+						result = "\x1B[32m<\033[0m";
+					else
+						result = "=";
+
+					printf("\n%-10d | [ %.6e %s ]", i, mse, result);
+					prevMse = mse;
+				}
+			}
+			printf("\n");
 		}
 
 		void train(NeuralNetwork& network,
@@ -170,18 +193,16 @@ namespace nn {
 				}
 			}
 			printf("\n\n### Final Results");
-			printf("\n%-10s | [ %.6e ]\n", "MMSError", mse);
-
 			if (failed) {
-				printf("%-10s | %-30s | Epoch %-3d", "Result", "[ FAILED ]", e);
+				printf("\n%-10s | %-30s | Epoch %-3d", "Result", "[ FAILED ]", e);
 			}
 			else if (e == epochTarget) {
-				printf("%-10s | %-30s | Epoch %-3d", "Result", "Failed - Reached epoch limit", e);
+				printf("\n%-10s | %-30s | Epoch %-3d", "Result", "Failed - Reached epoch limit", e);
 			}
 			else {
-				printf("%-10s | %-30s | Epoch %-3d", "Result", "Succeeded - Reached minimum MSE target", e);
+				printf("\n%-10s | %-30s | Epoch %-3d", "Result", "Succeeded - Reached minimum MSE target", e);
 			}
-			printf("\n");
+			printf("\n%-10s | [ %.6e ]\n", "MMSError", mse);
 		}
 	};
 };

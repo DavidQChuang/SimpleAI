@@ -111,7 +111,7 @@ inline void trainNN_Unsupervised(nn::NeuralNetwork& net, T trainer,
 void nnPerceptron() {
 	nn::NeuralNetwork net({
 		nn::NeuronLayer(3, nn::ActFunc::Linear, "in"),
-		nn::NeuronLayer(1, nn::ActFunc::Step, "out")
+		nn::NeuronLayer(1, nn::ActFunc::Step, false, false, "out")
 		});
 
 	constexpr int TRAINING_SETS = 4;
@@ -131,9 +131,7 @@ void nnPerceptron() {
 		OUTPUT { 1.0 },
 	};
 
-	net.getLayers()[1].weightsIn()[0] = 1;
-
-	nn::PerceptronTrainer trainer = nn::PerceptronTrainer(0.01, 0.002, 100);
+	nn::PerceptronTrainer trainer = nn::PerceptronTrainer(0.1, 0e1, 100);
 
 	trainNN_Supervised(net, trainer, TRAINING_SETS, trainingIn, INPUTS, trainingOut, OUTPUTS);
 
@@ -175,9 +173,7 @@ void nnAdaline() {
 		OUTPUT { 0.10 },
 	};
 
-	//net.getLayers()[1].weightsIn()[0] = 1;
-
-	nn::AdalineTrainer trainer = nn::AdalineTrainer(0.01, 2e-4, 1000);
+	nn::AdalineTrainer trainer = nn::AdalineTrainer(0.1, 2e-4, 1000);
 
 	trainNN_Supervised(net, trainer, TRAINING_SETS, trainingIn, INPUTS, trainingOut, OUTPUTS);
 
@@ -190,8 +186,8 @@ void nnAdaline() {
 // The training algorithm used adjusts weights ...
 void nnBackpropagation() {
 	nn::NeuralNetwork net({
-		nn::NeuronLayer(3, nn::ActFunc::Linear, true, false, "in"),
-		nn::NeuronLayer(3, nn::ActFunc::Siglog, "hidden"),
+		nn::NeuronLayer(3, nn::ActFunc::Linear, "in"),
+		nn::NeuronLayer(3, nn::ActFunc::Linear, "hidden"),
 		nn::NeuronLayer(2, nn::ActFunc::Linear, "out")
 		});
 
