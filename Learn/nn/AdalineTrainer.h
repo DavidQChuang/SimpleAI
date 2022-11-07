@@ -6,7 +6,7 @@ namespace nn {
 	class AdalineTrainer : public SupervisedTrainer {
 	private:
 		NeuronLayer* layer;
-		vector<double>* weightsIn;
+		vector<double>* weightsInPtr;
 		int neurons;
 
 	protected:
@@ -21,32 +21,42 @@ namespace nn {
 				throw invalid_argument("Adaline requires 1 output.");
 
 			layer = &network.getLayers()[0];
-			weightsIn = &layer->weightsIn();
+			weightsInPtr = &layer->weightsIn();
 			neurons = layer->size();
 		}
 
 		void trainOnEpoch(NeuralNetwork& network, double* inputs, double* expOutputs, double* buffer, double* outPtr) {
 			double error = expOutputs[0] - outPtr[0]; // target - result, positive if result was lower, negative if result was higher
-			double sum = 0;
 
 			int inputCount = layer->inputsPerNeuron();
 			int outputCount = layer->outputsPerNeuron();
 
-			int inOffset = network.getLayers().size() == 1 ? 0 : network.expectedInputs();
-			double* inPtr = buffer + inOffset;
+			vector<double>& weightsIn = *weightsInPtr;
 
+			int in = 0;
+			double sum = 0;
 			for (int n = 0; n < neurons; n++) {
-				for (int o = 0; o < outputCount; o++) {
-					sum += inPtr[n * outputCount + o];
+				for (int i = 0; i < inputCount; i++) {
+					int w = n * inputCount + i;
+
+					sum += inputs[in] * weightsIn[w];
+					in++;
+				}
+				if (layer->independentInputs()) {
+					in -= inputCount;
 				}
 			}
 
-			int in = 0;
+			in = 0;
 			for (int n = 0; n < neurons; n++) {
 				for (int i = 0; i < inputCount; i++) {
-					(*weightsIn)[n] += learningRate * error * inputs[in] * layer->derivActivationFunc(sum);
+					int w = n * inputCount + i;
 
+					weightsIn[w] += learningRate * error * inputs[in] * layer->derivActivationFunc(sum);
 					in++;
+				}
+				if (layer->independentInputs()) {
+					in -= inputCount;
 				}
 			}
 		}

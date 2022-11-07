@@ -6,7 +6,7 @@ namespace nn {
 	class PerceptronTrainer : public SupervisedTrainer {
 	private:
 		NeuronLayer* layer;
-		vector<double>* weightsIn;
+		vector<double>* weightsInPtr;
 		int neurons;
 
 	protected:
@@ -21,17 +21,26 @@ namespace nn {
 				throw invalid_argument("Perceptron requires 1 output.");
 
 			layer = &network.getLayers()[0];
-			weightsIn = &layer->weightsIn();
+			weightsInPtr = &layer->weightsIn();
 			neurons = layer->size();
 		}
 
 		void trainOnEpoch(NeuralNetwork& network, double* inputs, double* expOutputs, double* buffer, double* outPtr) {
 			double error = expOutputs[0] - outPtr[0]; // target - result, positive if result was lower, negative if result was higher
 
+			int inputCount = layer->inputsPerNeuron();
+
+			vector<double>& weightsIn = *weightsInPtr;
+
 			int in = 0;
 			for (int n = 0; n < neurons; n++) {
 				for (int i = 0; i < layer->inputsPerNeuron(); i++) {
-					(*weightsIn)[n] += learningRate * error * inputs[in++];
+					int w = n * inputCount + i;
+
+					weightsIn[w] += learningRate * error * inputs[in++];
+				}
+				if (layer->independentInputs()) {
+					in -= inputCount;
 				}
 			}
 		}
