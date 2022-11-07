@@ -243,7 +243,7 @@ namespace nn {
 				break;
 
 			case ActFunc::Hypertan:
-				res =  (1.0 - exp(-v)) / (1.0 + exp(-v));
+				res = tanh(v);
 				break;
 
 			default:
