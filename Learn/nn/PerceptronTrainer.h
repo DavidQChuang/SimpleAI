@@ -23,6 +23,8 @@ namespace nn {
 			layer = &network.getLayers()[0];
 			weightsInPtr = &layer->weightsIn();
 			neurons = layer->size();
+
+			//inputOffset = network.getLayers().size() == 1 ? 0 : network.expectedInputs();
 		}
 
 		void trainOnEpoch(NeuralNetwork& network, double* inputs, double* expOutputs, double* buffer, double* outPtr) {
@@ -39,7 +41,7 @@ namespace nn {
 
 					weightsIn[w] += learningRate * error * inputs[in++];
 				}
-				if (layer->independentInputs()) {
+				if (!layer->independentInputs()) {
 					in -= inputCount;
 				}
 			}

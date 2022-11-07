@@ -8,6 +8,7 @@ namespace nn {
 		NeuronLayer* layer;
 		vector<double>* weightsInPtr;
 		int neurons;
+		int inputOffset;
 
 	protected:
 		void checkTrainingInputs(NeuralNetwork& network,
@@ -23,6 +24,8 @@ namespace nn {
 			layer = &network.getLayers()[0];
 			weightsInPtr = &layer->weightsIn();
 			neurons = layer->size();
+
+			inputOffset = network.getLayers().size() == 1 ? 0 : network.expectedInputs();
 		}
 
 		void trainOnEpoch(NeuralNetwork& network, double* inputs, double* expOutputs, double* buffer, double* outPtr) {
@@ -32,6 +35,7 @@ namespace nn {
 			int outputCount = layer->outputsPerNeuron();
 
 			vector<double>& weightsIn = *weightsInPtr;
+			double* inPtr = buffer + inputOffset;
 
 			int in = 0;
 			double sum = 0;
@@ -39,10 +43,10 @@ namespace nn {
 				for (int i = 0; i < inputCount; i++) {
 					int w = n * inputCount + i;
 
-					sum += inputs[in] * weightsIn[w];
+					sum += inPtr[in] * weightsIn[w];
 					in++;
 				}
-				if (layer->independentInputs()) {
+				if (!layer->independentInputs()) {
 					in -= inputCount;
 				}
 			}
@@ -52,10 +56,10 @@ namespace nn {
 				for (int i = 0; i < inputCount; i++) {
 					int w = n * inputCount + i;
 
-					weightsIn[w] += learningRate * error * inputs[in] * layer->derivActivationFunc(sum);
+					weightsIn[w] += learningRate * error * inPtr[in] * layer->derivActivationFunc(sum);
 					in++;
 				}
-				if (layer->independentInputs()) {
+				if (!layer->independentInputs()) {
 					in -= inputCount;
 				}
 			}
