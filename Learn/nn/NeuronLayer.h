@@ -197,7 +197,7 @@ namespace nn {
 				if (mUseInputs) {
 					printf("\n%-7d | IN : [ ", n);
 					for (int i = 0; i < mNeuronInputs; i++) {
-						printf("%.8f", inputWeights[n * mNeuronInputs + i]);
+						printf("%11.8f", inputWeights[n * mNeuronInputs + i]);
 
 						if (i + 1 != mNeuronInputs) {
 							printf(", ");
@@ -210,7 +210,7 @@ namespace nn {
 				if (mUseOutputs) {
 					printf("\n%-7d | OUT: [ ", n);
 					for (int i = 0; i < mNeuronOutputs; i++) {
-						printf("%.8f", outputWeights[n * mNeuronOutputs + i]);
+						printf("%11.8f", outputWeights[n * mNeuronOutputs + i]);
 
 						if (i + 1 != mNeuronOutputs) {
 							printf(", ");

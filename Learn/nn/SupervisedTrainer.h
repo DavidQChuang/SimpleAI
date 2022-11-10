@@ -1,13 +1,22 @@
 #pragma once
 #include <cmath>
+#include <Eigen/Dense>
 #include "../NeuralNetwork.h"
 
 namespace nn {
 	class SupervisedTrainer {
 	protected:
+		// exit conditions
 		int				epochTarget;
 		double			errorTarget;
+		double			mseMax = 1e6;
+
+		// learning rate
 		double			learningRate;
+
+		// fields set & used during training
+		Eigen::VectorXd setError;
+		int				currSet;
 
 		double cost(int n, double* nnEstimate, double* actual) {
 			double sum = 0;
@@ -22,19 +31,24 @@ namespace nn {
 	protected:
 
 		virtual void trainOnSet(NeuralNetwork& network, double* inputs, double* expOutputs, double* buffer, double* outPtr) = 0;
-		virtual void trainOnEpoch(NeuralNetwork& network, int trainingSets,
+		virtual void trainOnEpoch(NeuralNetwork& network, int trainingSets, double* buffer,
 			double** inputSet, size_t inLength, double** expOutputSet, size_t outLength) {}
 
-		virtual void initTrainingEpoch(NeuralNetwork& network, int trainingSets,
-			double** inputSet, size_t inLength, double** expOutputSet, size_t outLength) {}
 
-		virtual void initTrainingSet(NeuralNetwork& network,
-			double* inputs, size_t inLength, double* expOutputs, size_t outLength) {
+		virtual void initTraining(NeuralNetwork& network, int trainingSets,
+			double** inputSet, size_t inLength, double** expOutputSet, size_t outLength) {
 			if (network.expectedInputs() != inLength)
 				throw invalid_argument("Input of network and size of input buffer don't match.");
 			if (network.expectedOutputs() != outLength)
 				throw invalid_argument("Output of network and size of output buffer don't match.");
 		}
+
+		virtual void initTrainingEpoch(NeuralNetwork& network, int trainingSets,
+			double** inputSet, size_t inLength, double** expOutputSet, size_t outLength) {
+		}
+
+		virtual void initTrainingSet(NeuralNetwork& network,
+			double* inputs, size_t inLength, double* expOutputs, size_t outLength) {}
 
 		virtual void cleanUp() {}
 
@@ -71,11 +85,25 @@ namespace nn {
 			double mse;
 			int e = 0;
 			try {
-				while(e < epochTarget) {
-					double error = 0;
+				setError = Eigen::VectorXd(trainingSets);
+				// init setError before training
+				for (int i = 0; i < trainingSets; i++) {
+					double* inputs = inputSet[i];
+					double* expOutputs = expOutputSet[i];
+					double* outPtr = executeOnSet(network, buffer,
+						inputs, inLength, expOutputs, outLength);
 
+					double setMse = cost(outLength, outPtr, expOutputSet[i]);
+					setError(i) = setMse;
+				}
+
+				initTraining(network, trainingSets,
+					inputSet, inLength, expOutputSet, outLength);
+
+				while(e < epochTarget) {
 					initTrainingEpoch(network, trainingSets,
 						inputSet, inLength, expOutputSet, outLength);
+					currSet = 0;
 
 					for (int i = 0; i < trainingSets; i++) {
 						double* inputs = inputSet[i];
@@ -83,18 +111,21 @@ namespace nn {
 						double* outPtr = executeOnSet(network, buffer,
 							inputs, inLength, expOutputs, outLength);
 
-						trainOnSet(network, inputs, expOutputs, buffer, outPtr);
+						double setMse = cost(outLength, outPtr, expOutputSet[i]);
+						setError(i) = setMse;
 
-						error += cost(outLength, outPtr, expOutputSet[i]);
+						trainOnSet(network, inputs, expOutputs, buffer, outPtr);
+						currSet++;
 					}
 
-					trainOnEpoch(network, trainingSets,
+					trainOnEpoch(network, trainingSets, buffer,
 						inputSet, inLength, expOutputSet, outLength);
 
-					mse = error / trainingSets;
+					mse = setError.sum() / trainingSets;
 					mseHistory.push_back(mse);
 
 					if (mse <= errorTarget) break;
+					else if (mse > mseMax) break;
 
 					e++;
 				}
@@ -111,9 +142,13 @@ namespace nn {
 
 			printf("%-10s | -", "MSE Trend");
 
+			double maxMse = *max_element(mseHistory.begin(), mseHistory.end());
+			double minMse = *min_element(mseHistory.begin(), mseHistory.end());
+			double mseRange = maxMse - minMse;
+			printf("\nMin [ %.6e ] -> Max [ %.6e ]", minMse, maxMse);
 			double prevMse = 0;
 			int mseRecordMod = epochTarget / MAX_MSE_HISTORY;
-			for (int i = 0; i < e; i++) {
+			for (int i = 0; i < mseHistory.size(); i++) {
 				if (i < 5 || i % mseRecordMod == 0 || e - i <= 5) {
 					mse = mseHistory[i];
 
@@ -125,7 +160,13 @@ namespace nn {
 					else
 						result = "=";
 
-					printf("\n%-10d | [ %.6e %s ]", i, mse, result);
+					printf("\n%-10d | [ %.6e %s ] ", i, mse, result);
+
+					int starCount = (int)(24 * (mse - minMse) / mseRange);
+					for (int n = 0; n < starCount; n++) {
+						printf("*");
+					}
+
 					prevMse = mse;
 				}
 			}
@@ -140,7 +181,7 @@ namespace nn {
 			train(network, 1, inputSet.get(), inLength, expOutputSet.get(), outLength);
 		}
 
-	private:
+	protected:
 		double* executeOnSet(NeuralNetwork& network, double* buffer,
 			double* inputs, size_t inLength, double* expOutputs, size_t outLength) {
 
@@ -148,7 +189,7 @@ namespace nn {
 			memcpy(buffer, inputs, inLength * sizeof(double));
 			return network.executeToIOArray(buffer, inLength, network.expectedBufferSize());
 		}
-
+	private:
 		void displayResults(NeuralNetwork& network, double* buffer,
 			int trainingSets, double** inputSet, int inLength, double** expOutputSet, int outLength,
 			double mse, int e) {
@@ -161,7 +202,7 @@ namespace nn {
 				printf("\n\n### Training set #%d\n", i);
 				printf("\n%-10s | [ ", "Inputs");
 				for (int i = 0;;) {
-					printf("%.3f", inputs[i]);
+					printf("%6.3f", inputs[i]);
 
 					if (++i < inLength) {
 						printf(", ");
@@ -172,7 +213,7 @@ namespace nn {
 
 				printf("\n%-10s | [ ", "ExpOutputs");
 				for (int i = 0;;) {
-					printf("%.6f", expOutputs[i]);
+					printf("%9.6f", expOutputs[i]);
 
 					if (++i < outLength) {
 						printf(", ");
@@ -187,7 +228,7 @@ namespace nn {
 
 					printf("\n%-10s | [ ", "NNOutputs");
 					for (int i = 0;;) {
-						printf("%.6f", outPtr[i]);
+						printf("%9.6f", outPtr[i]);
 
 						if (++i < outLength) {
 							printf(", ");
@@ -210,7 +251,9 @@ namespace nn {
 			else if (e == epochTarget) {
 				printf("\n%-10s | %-30s | Epoch %-3d", "Result", "Failed - Reached epoch limit", e);
 			}
-			else {
+			else if(mse > mseMax) {
+				printf("\n%-10s | %-30s | Epoch %-3d", "Result", "Failed - Reached max MSE limit", e);
+			} else {
 				printf("\n%-10s | %-30s | Epoch %-3d", "Result", "Succeeded - Reached minimum MSE target", e);
 			}
 			printf("\n%-10s | [ %.6e ]\n", "MMSError", mse);

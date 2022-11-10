@@ -8,12 +8,21 @@ namespace nn {
 	// https://en.wikipedia.org/wiki/Levenberg%E2%80%93Marquardt_algorithm#Choice_of_damping_parameter
 	class LevenbergMarquadtTrainer : public SupervisedTrainer {
 	private:
+		// fields set & used during training
+		// persistent for all epochs
 		int jacobianCols = 0;
 		int jacobianRows = 0;
 		Eigen::MatrixXd J;
-		Eigen::VectorXd error;
+		Eigen::VectorXd Wd;
 
-		int set = 0;
+		// variable per epoch
+		double dampingFactor = 0.1;
+
+		// constant for all epochs
+		double adjustmentFactor = 10;
+
+		// 
+		double prevMse = 0;
 
 		//double learningRate
 
@@ -23,8 +32,11 @@ namespace nn {
 
 	protected:
 
-		void initTrainingEpoch(NeuralNetwork& network, int trainingSets,
-			double** inputSet, size_t inLength, double** expOutputSet, size_t outLength) {
+		void initTraining(NeuralNetwork& network, int trainingSets,
+			double** inputSet, size_t inLength, double** expOutputSet, size_t outLength)
+		override {
+			SupervisedTrainer::initTraining(network, trainingSets,
+				inputSet, inLength, expOutputSet, outLength);
 
 			jacobianCols = 0;
 			auto layers = network.getLayers();
@@ -36,26 +48,25 @@ namespace nn {
 			jacobianRows = trainingSets;
 
 			J = Eigen::MatrixXd(jacobianRows, jacobianCols);
-			error = Eigen::VectorXd(jacobianRows);
 
-			set = 0;
+			dampingFactor = learningRate;
+			
+			prevMse = setError.sum() / trainingSets;
 		}
 
-		void initTrainingSet(NeuralNetwork& network,
-			double* inputs, size_t inLength, double* expOutputs, size_t outLength) override {
-			SupervisedTrainer::initTrainingSet(network, inputs, inLength, expOutputs, outLength);
-		}
+		/*void initTrainingEpoch(NeuralNetwork& network, int trainingSets,
+			double** inputSet, size_t inLength, double** expOutputSet, size_t outLength) 
+		override {
+			SupervisedTrainer::initTrainingEpoch(network, trainingSets,
+				inputSet, inLength, expOutputSet, outLength);
+		}*/
 
-		void cleanUp() override {
-		}
+		void cleanUp() override {}
 
 		void trainOnSet(NeuralNetwork& network, double* inputs, double* expOutputs, double* buffer, double* outPtr) {
 			vector<double> layerDelta;
 			vector<double> oldLayerDelta;
-			vector<double> errors;
 			vector<NeuronLayer>& layers = network.getLayers();
-
-			double errorMean = 0;
 
 			// Calculate target vs. nn output errors and store them in the errors buffer.
 			// The error cancels out for the output layer in the Levenberg-Marquadt equation,
@@ -63,23 +74,8 @@ namespace nn {
 			int out = 0;
 			NeuronLayer& outputLayer = layers[layers.size() - 1];
 			for (int n = 0; n < outputLayer.size(); n++) {
-				double sumNN = 0;
-				double sumExp = 0;
-
-				for (int o = 0; o < outputLayer.outputsPerNeuron(); o++) {
-					sumNN += outPtr[out];
-					sumExp += expOutputs[out];
-					out++;
-				}
-
-				double error = sumExp - sumNN;
-
-				errorMean += pow(error, 2);
-				errors.push_back(sumExp - sumNN);
 				layerDelta.push_back(1);
 			}
-			errorMean /= outputLayer.size();
-			error(set) = errorMean;
 
 			double* inPtr = outPtr;
 
@@ -133,7 +129,7 @@ namespace nn {
 						// layer's neurons' deltas dj * the weight wij connecting the two
 						// neurons for each neuron [j] in this layer.
 						layerDelta[i] += delta * weightsIn[w];
-						J(set, layerWeightIndex + w) = delta * inPtr[in] / errorMean;
+						J(currSet, layerWeightIndex + w) = delta * inPtr[in] / setError(currSet);
 						in++;
 					}
 
@@ -144,37 +140,66 @@ namespace nn {
 					}
 				}
 			} // for
-
-			set++;
 		}
 		
-		void trainOnEpoch(NeuralNetwork& network, int trainingSets,
+		void trainOnEpoch(NeuralNetwork& network, int trainingSets, double* buffer,
 			double** inputSet, size_t inLength, double** expOutputSet, size_t outLength) {
-			set = 0;
 			// delta W = (JTJ + LI)^-1JT (Y - f(X, W))
 
 			//std::cout << "TEST J: " << J << std::endl;
 			//std::cout << "TEST ERROR: " << error << std::endl;
 
 			auto F1A = J.transpose() * J; // square matrix, size nxn
-			auto F1 = F1A + Eigen::MatrixXd::Identity(jacobianCols, jacobianCols) * learningRate; // square matrix, size nxn
-			auto F2 = J.transpose() * error; // nxm * mx1 = nx1: # of weights x
-			auto F = F1.inverse() * F2; // nxn * nx1: nx1
+			auto F1 = F1A + Eigen::MatrixXd::Identity(jacobianCols, jacobianCols) * dampingFactor; // square matrix, size nxn
+			auto F2 = J.transpose() * setError; // nxm * mx1 = nx1: # of weights x
+			Wd = F1.inverse() * F2; // nxn * nx1: nx1
 
 			//std::cout << "TEST F: " << F << std::endl;
 			
+			updateWeights<1>(network, Wd);
+
+			/*
+			// Recalculate MSE after weight update
+			for (int i = 0; i < trainingSets; i++) {
+				double* inputs = inputSet[i];
+				double* expOutputs = expOutputSet[i];
+				double* outPtr = executeOnSet(network, buffer,
+					inputs, inLength, expOutputs, outLength);
+
+				double setMse = cost(outLength, outPtr, expOutputSet[i]);
+				setError(i) = setMse;
+			}
+
+			double mse = setError.sum() / trainingSets;
+			if (mse >= prevMse) {
+				// Failed to reduce mse. Discard weights and increase damping factor.
+				dampingFactor *= adjustmentFactor;
+				updateWeights<-1>(network, Wd);
+			}
+			else if (mse < prevMse) {
+				// Reduced mse successfully. Keep weights and reduce damping factor.
+				dampingFactor /= adjustmentFactor;
+			}
+			prevMse = mse;*/
+		}
+
+	private:
+		template<int factor>
+		void updateWeights(NeuralNetwork& network, Eigen::VectorXd F) {
 			vector<NeuronLayer>& layers = network.getLayers();
-			int n = 0;
-			int nMax = layers[0].size() - 1;
 			int l = 0;
-			vector<double>& weightsIn = layers[0].weightsIn();
-			for (int i = 0; i < F.cols(); i++) {
-				if (n > nMax) {
-					n = 0;
-					weightsIn = layers[++l].weightsIn();
+			vector<double>* weightsIn = &layers[0].weightsIn();
+			int w = 0;
+			int wMax = weightsIn->size();
+			for (int i = 0; i < F.size(); i++) {
+				if (w >= wMax) {
+					w = 0;
+					weightsIn = &layers[++l].weightsIn();
+					wMax = weightsIn->size();
 				}
 
-				weightsIn[n++] += F[i];
+				double dW = F[i];
+				(*weightsIn)[w++] += factor * dW;
 			}
 		}
 
