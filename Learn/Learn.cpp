@@ -220,7 +220,7 @@ void nnBackpropagation() {
 		OUTPUT{ 0.0, 1.0 },
 		OUTPUT{ 0.0, 1.0 }
 	};
-	nn::BackpropagationTrainer trainer = nn::BackpropagationTrainer(0.05, 1e-4, 1000);
+	nn::BackpropagationTrainer trainer = nn::BackpropagationTrainer(0.05, 5e-2, 1000);
 
 	trainNN_Supervised(net, trainer, TRAINING_SETS, trainingIn, INPUTS, trainingOut, OUTPUTS);
 
@@ -266,7 +266,7 @@ void nnLevenbergMarquadt() {
 		OUTPUT{ 0.0, 1.0 },
 		OUTPUT{ 0.0, 1.0 }
 	};
-	nn::LevenbergMarquadtTrainer trainer = nn::LevenbergMarquadtTrainer(0.1, 1e-4, 200);
+	nn::LevenbergMarquadtTrainer trainer = nn::LevenbergMarquadtTrainer(0.1, 5e-2, 200);
 
 	trainNN_Supervised(net, trainer, TRAINING_SETS, trainingIn, INPUTS, trainingOut, OUTPUTS);
 
