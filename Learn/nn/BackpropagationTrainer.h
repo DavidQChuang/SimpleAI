@@ -5,12 +5,12 @@
 namespace nn {
 	class BackpropagationTrainer : public SupervisedTrainer {
 	protected:
-		/*void checkTrainingInputs(NeuralNetwork& network,
+		/*void initTrainingSet(NeuralNetwork& network,
 			double* inputs, size_t inLength, double* expOutputs, size_t outLength) override {
-			SupervisedTrainer::checkTrainingInputs(network, inputs, inLength, expOutputs, outLength);
+			SupervisedTrainer::initTrainingSet(network, inputs, inLength, expOutputs, outLength);
 		}*/
 
-		void trainOnEpoch(NeuralNetwork& network, double* inputs, double* expOutputs, double* buffer, double* outPtr) {
+		void trainOnSet(NeuralNetwork& network, double* inputs, double* expOutputs, double* buffer, double* outPtr) {
 			vector<double> layerDelta;
 			vector<double> oldLayerDelta;
 			vector<NeuronLayer>& layers = network.getLayers();

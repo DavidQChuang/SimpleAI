@@ -35,7 +35,7 @@ namespace nn {
 
 		virtual void trainOnEpoch(NeuralNetwork& network, double* inputs, double* buffer, double* outPtr) = 0;
 
-		virtual void checkTrainingInputs(NeuralNetwork& network, double* inputs, size_t inLength) {
+		virtual void initTrainingSet(NeuralNetwork& network, double* inputs, size_t inLength) {
 			if (network.expectedInputs() != inLength)
 				throw invalid_argument("Input of network and size of input buffer don't match.");
 		}
@@ -106,7 +106,7 @@ namespace nn {
 		double* executeOnSet(NeuralNetwork& network, double* buffer,
 			double* inputs, size_t inLength) {
 
-			checkTrainingInputs(network, inputs, inLength);
+			initTrainingSet(network, inputs, inLength);
 			memcpy(buffer, inputs, inLength * sizeof(double));
 			return network.executeToIOArray(buffer, inLength, network.expectedBufferSize());
 		}

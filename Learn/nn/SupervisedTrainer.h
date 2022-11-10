@@ -21,8 +21,14 @@ namespace nn {
 
 	protected:
 
-		virtual void trainOnEpoch(NeuralNetwork& network, double* inputs, double* expOutputs, double* buffer, double* outPtr) = 0;
-		virtual void checkTrainingInputs(NeuralNetwork& network,
+		virtual void trainOnSet(NeuralNetwork& network, double* inputs, double* expOutputs, double* buffer, double* outPtr) = 0;
+		virtual void trainOnEpoch(NeuralNetwork& network, int trainingSets,
+			double** inputSet, size_t inLength, double** expOutputSet, size_t outLength) {}
+
+		virtual void initTrainingEpoch(NeuralNetwork& network, int trainingSets,
+			double** inputSet, size_t inLength, double** expOutputSet, size_t outLength) {}
+
+		virtual void initTrainingSet(NeuralNetwork& network,
 			double* inputs, size_t inLength, double* expOutputs, size_t outLength) {
 			if (network.expectedInputs() != inLength)
 				throw invalid_argument("Input of network and size of input buffer don't match.");
@@ -68,17 +74,22 @@ namespace nn {
 				while(e < epochTarget) {
 					double error = 0;
 
+					initTrainingEpoch(network, trainingSets,
+						inputSet, inLength, expOutputSet, outLength);
+
 					for (int i = 0; i < trainingSets; i++) {
 						double* inputs = inputSet[i];
 						double* expOutputs = expOutputSet[i];
 						double* outPtr = executeOnSet(network, buffer,
 							inputs, inLength, expOutputs, outLength);
 
-						trainOnEpoch(network, inputs, expOutputs, buffer, outPtr);
+						trainOnSet(network, inputs, expOutputs, buffer, outPtr);
 
 						error += cost(outLength, outPtr, expOutputSet[i]);
-
 					}
+
+					trainOnEpoch(network, trainingSets,
+						inputSet, inLength, expOutputSet, outLength);
 
 					mse = error / trainingSets;
 					mseHistory.push_back(mse);
@@ -133,7 +144,7 @@ namespace nn {
 		double* executeOnSet(NeuralNetwork& network, double* buffer,
 			double* inputs, size_t inLength, double* expOutputs, size_t outLength) {
 
-			checkTrainingInputs(network, inputs, inLength, expOutputs, outLength);
+			initTrainingSet(network, inputs, inLength, expOutputs, outLength);
 			memcpy(buffer, inputs, inLength * sizeof(double));
 			return network.executeToIOArray(buffer, inLength, network.expectedBufferSize());
 		}

@@ -13,6 +13,7 @@
 #include "nn/PerceptronTrainer.h"
 #include "nn/AdalineTrainer.h"
 #include "nn/BackpropagationTrainer.h"
+#include "nn/LevenbergMarquadtTrainer.h"
 #include "nn/WTATrainer.h"
 #include "nn/KohonenTrainer.h"
 
@@ -187,7 +188,7 @@ void nnAdaline() {
 void nnBackpropagation() {
 	nn::NeuralNetwork net({
 		nn::NeuronLayer(3, nn::ActFunc::Linear, "in"),
-		nn::NeuronLayer(3, nn::ActFunc::Linear, "hidden"),
+		nn::NeuronLayer(3, nn::ActFunc::Siglog, "hidden"),
 		nn::NeuronLayer(2, nn::ActFunc::Linear, "out")
 		});
 
@@ -220,6 +221,52 @@ void nnBackpropagation() {
 		OUTPUT{ 0.0, 1.0 }
 	};
 	nn::BackpropagationTrainer trainer = nn::BackpropagationTrainer(0.05, 1e-4, 1000);
+
+	trainNN_Supervised(net, trainer, TRAINING_SETS, trainingIn, INPUTS, trainingOut, OUTPUTS);
+
+	DELETE_TRAINING_DATA(trainingIn);
+	DELETE_TRAINING_DATA(trainingOut);
+}
+
+// Training a multi-layer perceptron to solve a regression problem.
+// The inputs are ...
+// The training algorithm used adjusts weights ...
+void nnLevenbergMarquadt() {
+	nn::NeuralNetwork net({
+		nn::NeuronLayer(3, nn::ActFunc::Linear, "in"),
+		nn::NeuronLayer(3, nn::ActFunc::Siglog, "hidden"),
+		nn::NeuronLayer(2, nn::ActFunc::Linear, "out")
+		});
+
+	constexpr int TRAINING_SETS = 10;
+	constexpr int INPUTS = 3;
+	constexpr int OUTPUTS = 2;
+
+	double** trainingIn = new double* [TRAINING_SETS] {
+		INPUT{ 1.0, 1.0, 0.73 },
+		INPUT{ 1.0, 1.0, 0.81 },
+		INPUT{ 1.0, 1.0, 0.86 },
+		INPUT{ 1.0, 1.0, 0.95 },
+		INPUT{ 1.0, 0.0, 0.45 },
+		INPUT{ 1.0, 1.0, 0.70 },
+		INPUT{ 1.0, 0.0, 0.51 },
+		INPUT{ 1.0, 1.0, 0.89 },
+		INPUT{ 1.0, 1.0, 0.79 },
+		INPUT{ 1.0, 0.0, 0.54 }
+	};
+	double** trainingOut = new double* [TRAINING_SETS] {
+		OUTPUT{ 1.0, 0.0 },
+		OUTPUT{ 1.0, 0.0 },
+		OUTPUT{ 1.0, 0.0 }, 
+		OUTPUT{ 1.0, 0.0 },
+		OUTPUT{ 1.0, 0.0 },
+		OUTPUT{ 0.0, 1.0 },
+		OUTPUT{ 0.0, 1.0 },
+		OUTPUT{ 0.0, 1.0 },
+		OUTPUT{ 0.0, 1.0 },
+		OUTPUT{ 0.0, 1.0 }
+	};
+	nn::LevenbergMarquadtTrainer trainer = nn::LevenbergMarquadtTrainer(0.05, 1e-4, 1000);
 
 	trainNN_Supervised(net, trainer, TRAINING_SETS, trainingIn, INPUTS, trainingOut, OUTPUTS);
 
@@ -319,9 +366,12 @@ void execute(char ch) {
 		nnBackpropagation();
 	}
 	else if (ch == '5') {
-		nnWTA();
+		nnLevenbergMarquadt();
 	}
 	else if (ch == '6') {
+		nnWTA();
+	}
+	else if (ch == '7') {
 		nnKohonen();
 	}
 	/*else if (ch == 'n') {
@@ -352,8 +402,9 @@ int main()
 		printf("  2: Neural Network - Perceptron SLP\n");
 		printf("  3: Neural Network - Adaline SLP\n");
 		printf("  4: Neural Network - Backpropagation MLP\n");
-		printf("  5: Neural Network - Winner Takes All SOM\n");
-		printf("  6: Neural Network - Kohonen SOM\n");
+		printf("  5: Neural Network - Levenberg-Marquadt MLP\n");
+		printf("  6: Neural Network - Winner Takes All SOM\n");
+		printf("  7: Neural Network - Kohonen SOM\n");
 		//printf("  n: Neural Network - Mix & Match\n");
 		printf("  r: Reseed\n");
 		printf("  q: quit\n");

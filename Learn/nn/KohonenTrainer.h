@@ -16,8 +16,8 @@ namespace nn {
 		}
 
 	protected:
-		void checkTrainingInputs(NeuralNetwork& network, double* inputs, size_t inLength) override {
-			UnsupervisedTrainer::checkTrainingInputs(network, inputs, inLength);
+		void initTrainingSet(NeuralNetwork& network, double* inputs, size_t inLength) override {
+			UnsupervisedTrainer::initTrainingSet(network, inputs, inLength);
 
 			if (network.getLayers().size() > 2)
 				throw invalid_argument("Winner-takes-all trainer requires 1 inout layer or 1 in + 1 out layer. ");
