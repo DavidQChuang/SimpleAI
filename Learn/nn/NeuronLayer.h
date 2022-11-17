@@ -5,7 +5,7 @@
 
 namespace nn {
 	enum class ActFunc {
-		Step, Linear, Siglog, Hypertan
+		Step, Linear, Siglog, Hypertan, ReLU, LeakyReLU, GeLU,
 	};
 
 	class NeuronLayer {
@@ -223,6 +223,18 @@ namespace nn {
 			printf("\n");
 		}
 
+		/*double vectorActivationFunc(double* output, ) {
+			double res = 0;
+
+			switch (func) {
+			case ActFunc::Softmax:
+				res = v < 0 ? 0 : 1;
+				break;
+			}
+
+			return res;
+		}*/
+
 		double activationFunc(double v) {
 			double res;
 
@@ -231,7 +243,7 @@ namespace nn {
 
 			switch (func) {
 			case ActFunc::Step:
-				res =  v < 0 ? 0 : 1;
+				res = !signbit(v);
 				break;
 
 			case ActFunc::Linear:
@@ -246,12 +258,26 @@ namespace nn {
 				res = tanh(v);
 				break;
 
+			case ActFunc::ReLU:
+				res = max(0.0, v);
+				break;
+
+			case ActFunc::LeakyReLU:
+				res = max(0.01 * v, v);
+				break;
+
+			case ActFunc::GeLU:
+				res = 0;
+				break;
+
 			default:
 				throw invalid_argument("There is no function for this activation function type.");
 			}
 
 			if (res != res)
 				throw invalid_argument("Activation function resulted in NaN.");
+
+			return res;
 		}
 
 		double derivActivationFunc(double v) {
@@ -273,12 +299,22 @@ namespace nn {
 				res = 1.0 / pow(cosh(v), 2);
 				break;
 
+			case ActFunc::ReLU: // 0 or 1
+				res = !signbit(v);
+				break;
+
+			case ActFunc::LeakyReLU:
+				res = signbit(v) * 0.01 + !signbit(v);
+				break;
+
 			default:
 				throw invalid_argument("There is no derivative for this activation function type.");
 			}
 
 			if (res != res)
 				throw invalid_argument("Activation function deriv resulted in NaN.");
+
+			return res;
 		}
 	};
 }
