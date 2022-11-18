@@ -1,4 +1,5 @@
 #include "NeuronLayer.h"
+
 #include <stdexcept>
 #include <cmath>
 
@@ -33,52 +34,62 @@ namespace nn {
 
 		return 1;
 	}
-
+
+
 	double FFNeuronLayer<ScalarFunc::Siglog>::activationFunc(double v) {
 		CHECK_NAN(v, NAN_V_MSG);
 
 		return 1.0 / (1.0 + exp(-v));
-	}
+	}
+
 	double FFNeuronLayer<ScalarFunc::Siglog>::derivActivationFunc(double v) {
 		CHECK_NAN(v, NAN_DV_MSG);
 
 		return v * (1.0 - v);
 	}
-
+
+
 	double FFNeuronLayer<ScalarFunc::Hypertan>::activationFunc(double v) {
 		CHECK_NAN(v, NAN_V_MSG);
 
 		return tanh(v);
-	}
+	}
+
 	double FFNeuronLayer<ScalarFunc::Hypertan>::derivActivationFunc(double v) {
 		CHECK_NAN(v, NAN_DV_MSG);
 
 		return 1.0 / pow(cosh(v), 2);
 	}
-
+
+
 	double FFNeuronLayer<ScalarFunc::ReLU>::activationFunc(double v) {
 		return max(0.0, v);
-	}
+	}
+
 	double FFNeuronLayer<ScalarFunc::ReLU>::derivActivationFunc(double v) {
 		CHECK_NAN(v, NAN_DV_MSG);
 
 		return !signbit(v);
 	}
-
+
+
 	double FFNeuronLayer<ScalarFunc::LeakyReLU>::activationFunc(double v) {
 		return max(0.01 * v, v);
-	}
+	}
+
 	double FFNeuronLayer<ScalarFunc::LeakyReLU>::derivActivationFunc(double v) {
 		CHECK_NAN(v, NAN_DV_MSG);
 
 		return signbit(v) * 0.01 + !signbit(v);
 	}
-
+
+
 	double FFNeuronLayer<ScalarFunc::GeLU>::activationFunc(double v) {
 		double cdf = (1 + erf(v / sqrt(2))) / 2;
 
 		return v * cdf;
-	}
+	}
+
 	double FFNeuronLayer<ScalarFunc::GeLU>::derivActivationFunc(double v) {
 		CHECK_NAN(v, NAN_DV_MSG);
 

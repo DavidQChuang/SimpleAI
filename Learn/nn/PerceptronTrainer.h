@@ -11,8 +11,8 @@ namespace nn {
 
 	protected:
 		void initTrainingSet(NeuralNetwork& network,
-			const double* inputs, size_t inLength,
-			const double* expOutputs, size_t outLength)
+			double* inputs, size_t inLength,
+			double* expOutputs, size_t outLength)
 			override {
 			SupervisedTrainer::initTrainingSet(network, inputs, inLength, expOutputs, outLength);
 
@@ -30,7 +30,7 @@ namespace nn {
 		}
 
 		void trainOnSet(NeuralNetwork& network,
-			const double* inputs, const double* expOutputs,
+			double* inputs, double* expOutputs,
 			double* buffer, double* outPtr)
 			override {
 			double error = expOutputs[0] - outPtr[0]; // target - result, positive if result was lower, negative if result was higher

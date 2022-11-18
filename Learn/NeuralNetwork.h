@@ -12,8 +12,8 @@ namespace nn {
 	public:
 		typedef INeuronLayer Layer;
 	private:
-		typedef vector<unique_ptr<INeuronLayer>> Layers;
-		vector<unique_ptr<INeuronLayer>> nnLayers;
+		typedef vector<unique_ptr<Layer>> Layers;
+		Layers nnLayers;
 
 		int ioBufferSize;
 
@@ -25,11 +25,11 @@ namespace nn {
 		}
 
 	public:
-		NeuralNetwork(const initializer_list<INeuronLayer>& layersIl) {
+		NeuralNetwork(const initializer_list<INeuronLayer*>& layersIl) {
 			nnLayers = Layers();
 
-			for (const INeuronLayer& layer : layersIl) {
-				nnLayers.push_back(std::make_unique<INeuronLayer>(&layer));
+			for (const INeuronLayer* layer : layersIl) {
+				nnLayers.push_back(std::make_unique<Layer>(layer));
 			}
 
 			if (nnLayers.size() == 0) {
@@ -42,7 +42,7 @@ namespace nn {
 
 			int inputsPerNeuron = 1;
 			for (int i = 0; i < layers; i++) {
-				INeuronLayer& layer = *nnLayers[i];
+				Layer& layer = *nnLayers[i];
 
 				bool indepInputs = i == first;
 				bool useInputs = true; //(i != lastL);
@@ -92,7 +92,7 @@ namespace nn {
 
 			double* inPtr = buffer;
 			for (int i = 0; i < nnLayers.size(); i++) {
-				INeuronLayer& layer = *nnLayers[i];
+				Layer& layer = *nnLayers[i];
 				int inLen = layer.expectedInputs();
 				int outLen = layer.expectedOutputs();
 
@@ -120,7 +120,7 @@ namespace nn {
 				printf("\n");
 
 				for (it = nnLayers.begin() + 1; it < nnLayers.end() - 1; it++) {
-					INeuronLayer& layer = **it;
+					Layer& layer = **it;
 
 					printf("\n### Hidden Layer - %s", layer.name().c_str());
 					layer.display();
@@ -149,8 +149,8 @@ namespace nn {
 				printf("\n");
 
 				for (it = nnLayers.begin() + 1, it2 = other.nnLayers.begin() + 1; it < nnLayers.end() - 1; it++) {
-					INeuronLayer& layer1 = **it;
-					INeuronLayer& layer2 = **it;
+					Layer& layer1 = **it;
+					Layer& layer2 = **it;
 
 					printf("\n### Hidden Layer - %s", layer1.name().c_str());
 					layer1.display();

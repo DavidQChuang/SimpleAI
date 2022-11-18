@@ -116,8 +116,8 @@ inline void trainNN_Unsupervised(NeuralNetwork& net, T trainer,
 // The training algorithm used simply adjusts weights in the direction of error.
 void nnPerceptron() {
 	auto net = NeuralNetwork({
-		FFNeuronLayer<ScalarFunc::Linear>(3, "in"),
-		FFNeuronLayer<ScalarFunc::Step>(1, false, false, "out")
+		new FFNeuronLayer<ScalarFunc::Linear>(3, "in"),
+		new FFNeuronLayer<ScalarFunc::Step>(1, false, false, "out")
 	});
 
 	constexpr int TRAINING_SETS = 4;
@@ -152,8 +152,8 @@ void nnPerceptron() {
 // the derivative of the activation function.
 void nnAdaline() {
 	auto net = NeuralNetwork({
-		FFNeuronLayer<ScalarFunc::Linear>(4, "in"),
-		FFNeuronLayer<ScalarFunc::Linear>(1, false, false, "out")
+		new FFNeuronLayer<ScalarFunc::Linear>(4, "in"),
+		new FFNeuronLayer<ScalarFunc::Linear>(1, false, false, "out")
 	});
 
 	constexpr int TRAINING_SETS = 7;
@@ -192,9 +192,9 @@ void nnAdaline() {
 // The training algorithm used adjusts weights ...
 void nnBackpropagation() {
 	auto net = NeuralNetwork({
-		FFNeuronLayer<ScalarFunc::Linear>(3, "in"),
-		FFNeuronLayer<ScalarFunc::Linear>(3, "hidden"),
-		FFNeuronLayer<ScalarFunc::Linear>(2, "out")
+		new FFNeuronLayer<ScalarFunc::Linear>(3, "in"),
+		new FFNeuronLayer<ScalarFunc::Linear>(3, "hidden"),
+		new FFNeuronLayer<ScalarFunc::Linear>(2, "out")
 	});
 
 	constexpr int TRAINING_SETS = 10;
@@ -238,9 +238,9 @@ void nnBackpropagation() {
 // The training algorithm used adjusts weights ...
 void nnLevenbergMarquadt() {
 	auto net = NeuralNetwork({
-		FFNeuronLayer<ScalarFunc::Linear>(3, "in"),
-		FFNeuronLayer<ScalarFunc::Siglog>(3, "hidden"),
-		FFNeuronLayer<ScalarFunc::Linear>(2, "out")
+		new FFNeuronLayer<ScalarFunc::Linear>(3, "in"),
+		new FFNeuronLayer<ScalarFunc::Siglog>(3, "hidden"),
+		new FFNeuronLayer<ScalarFunc::Linear>(2, "out")
 	});
 
 	constexpr int TRAINING_SETS = 10;
@@ -284,8 +284,8 @@ void nnLevenbergMarquadt() {
 // The training algorithm used adjusts weights ...
 void nnWTA() {
 	auto net = NeuralNetwork({
-		FFNeuronLayer<ScalarFunc::Linear>(3, "in"),
-		FFNeuronLayer<ScalarFunc::Linear>(2, "out")
+		new FFNeuronLayer<ScalarFunc::Linear>(3, "in"),
+		new FFNeuronLayer<ScalarFunc::Linear>(2, "out")
 	});
 
 	constexpr int TRAINING_SETS = 6;
@@ -320,9 +320,9 @@ void nnWTA() {
 // The training algorithm used adjusts weights ...
 void nnKohonen() {
 	auto net = NeuralNetwork({
-		FFNeuronLayer<ScalarFunc::Siglog>(3, "in"),
-		FFNeuronLayer<ScalarFunc::Siglog>(3, "hidden"),
-		FFNeuronLayer<ScalarFunc::Linear>(2, "out")
+		new FFNeuronLayer<ScalarFunc::Siglog>(3, "in"),
+		new FFNeuronLayer<ScalarFunc::Siglog>(3, "hidden"),
+		new FFNeuronLayer<ScalarFunc::Linear>(2, "out")
 	});
 
 	constexpr int TRAINING_SETS = 6;

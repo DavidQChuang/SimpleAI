@@ -32,8 +32,8 @@ namespace nn {
 
 	protected:
 		void initTraining(NeuralNetwork& network, int trainingSets,
-			const double** inputSet, size_t inLength,
-			const double** expOutputSet, size_t outLength)
+			double** inputSet, size_t inLength,
+			double** expOutputSet, size_t outLength)
 		override {
 			SupervisedTrainer::initTraining(network, trainingSets,
 				inputSet, inLength, expOutputSet, outLength);
@@ -63,7 +63,7 @@ namespace nn {
 		void cleanUp() override {}
 
 		void trainOnSet(NeuralNetwork& network,
-			const double* inputs, const double* expOutputs,
+			double* inputs, double* expOutputs,
 			double* buffer, double* outPtr)
 		override {
 			vector<double> layerDelta;

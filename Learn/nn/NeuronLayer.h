@@ -26,7 +26,7 @@ namespace nn {
 		bool overrideUseOutputs = false;
 		bool overrideIndependentInputs = false;
 
-		string	layerName = "";
+		string layerName = "";
 
 	public:
 		INeuronLayer(int count, string name = "Layer") {
@@ -34,6 +34,17 @@ namespace nn {
 
 			neuronCount = count;
 			layerName = name;
+		}
+
+		INeuronLayer(int count, bool independentInputs, bool useInputs, string name = "Layer")
+			: INeuronLayer(count, name) {
+			overrideUseInputs = true;
+			overrideUseOutputs = true;
+			overrideIndependentInputs = true;
+
+			mUseInputs = useInputs;
+			mUseOutputs = false;
+			mIndependentInputs = independentInputs;
 		}
 
 		void init(int inputsPerNeuron, int outputsPerNeuron, bool independentInputs, bool useInputs, bool useOutputs) {
@@ -119,6 +130,7 @@ namespace nn {
 				return weights;
 			}
 		}
+
 		inline vector<double>& weightsOut() {
 			return outputWeights;
 		}
@@ -226,6 +238,8 @@ namespace nn {
 	public:
 		FFNeuronLayer(int count, string name = "Layer")
 			: INeuronLayer(count, name) {}
+		FFNeuronLayer(int count, bool independentInputs, bool useInputs, string name = "Layer")
+			: INeuronLayer(count, independentInputs, useInputs, name) {}
 
 		double activationFunc(double v) override;
 		double derivActivationFunc(double v) override;
@@ -236,6 +250,8 @@ namespace nn {
 	public:
 		FFNeuronLayer(int count, string name = "Layer")
 			: INeuronLayer(count, name) {}
+		FFNeuronLayer(int count, bool independentInputs, bool useInputs, string name = "Layer")
+			: INeuronLayer(count, independentInputs, useInputs, name) {}
 
 		double activationFunc(double v) override;
 		double derivActivationFunc(double v) override;
@@ -246,6 +262,8 @@ namespace nn {
 	public:
 		FFNeuronLayer(int count, string name = "Layer")
 			: INeuronLayer(count, name) {}
+		FFNeuronLayer(int count, bool independentInputs, bool useInputs, string name = "Layer")
+			: INeuronLayer(count, independentInputs, useInputs, name) {}
 
 		double activationFunc(double v) override;
 		double derivActivationFunc(double v) override;
@@ -256,6 +274,8 @@ namespace nn {
 	public:
 		FFNeuronLayer(int count, string name = "Layer")
 			: INeuronLayer(count, name) {}
+		FFNeuronLayer(int count, bool independentInputs, bool useInputs, string name = "Layer")
+			: INeuronLayer(count, independentInputs, useInputs, name) {}
 
 		double activationFunc(double v) override;
 		double derivActivationFunc(double v) override;
@@ -266,6 +286,8 @@ namespace nn {
 	public:
 		FFNeuronLayer(int count, string name = "Layer")
 			: INeuronLayer(count, name) {}
+		FFNeuronLayer(int count, bool independentInputs, bool useInputs, string name = "Layer")
+			: INeuronLayer(count, independentInputs, useInputs, name) {}
 
 		double activationFunc(double v) override;
 		double derivActivationFunc(double v) override;
@@ -276,6 +298,8 @@ namespace nn {
 	public:
 		FFNeuronLayer(int count, string name = "Layer")
 			: INeuronLayer(count, name) {}
+		FFNeuronLayer(int count, bool independentInputs, bool useInputs, string name = "Layer")
+			: INeuronLayer(count, independentInputs, useInputs, name) {}
 
 		double activationFunc(double v) override;
 		double derivActivationFunc(double v) override;
@@ -286,12 +310,10 @@ namespace nn {
 	public:
 		FFNeuronLayer(int count, string name = "Layer")
 			: INeuronLayer(count, name) {}
+		FFNeuronLayer(int count, bool independentInputs, bool useInputs, string name = "Layer")
+			: INeuronLayer(count, independentInputs, useInputs, name) {}
 
 		double activationFunc(double v) override;
 		double derivActivationFunc(double v) override;
 	};
-
-#undef NAN_V_MSG
-#undef NAN_DV_MSG
-#undef CHECK_NAN
 }
