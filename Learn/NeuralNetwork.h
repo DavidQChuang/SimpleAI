@@ -8,11 +8,9 @@
 using namespace std;
 
 namespace nn {
-	// Feedforward 
-	template<typename... Layers>
 	class NeuralNetwork {
 	private:
-		tuple<Layers...> nnLayers;
+		vector<INeuronLayer*> nnLayers;
 
 		int ioBufferSize;
 
@@ -20,29 +18,25 @@ namespace nn {
 		int outputs = 0;
 
 		NeuralNetwork() {
+			nnLayers = vector<INeuronLayer*>();
 		}
 
-#define NNLAYERS_SIZE sizeof...(Layers)
-#define NNLAYERS(i) std::get<i>(nnLayers)
-#define NNLAYERS_FRONT std::get<0>(nnLayers)
-#define NNLAYERS_BACK std::get<NNLAYERS_SIZE - 1>(nnLayers)
-
 	public:
-		NeuralNetwork(Layers... layers) {
-			nnLayers = make_tuple(layers);
+		NeuralNetwork(initializer_list<INeuronLayer*> getLayers) {
+			nnLayers = getLayers;
 
-			if (NNLAYERS_SIZE == 0) {
+			if (nnLayers.size() == 0) {
 				throw invalid_argument("The neural network cannot have zero layers.");
 			}
 
-			int layers = NNLAYERS_SIZE;
+			int layers = nnLayers.size();
 			int last = layers - 1;
 			int first = 0;
 
 			int inputsPerNeuron = 1;
 			for (int i = 0; i < layers; i++) {
-				NeuronLayer& layer = NNLAYERS(i);
-				
+				INeuronLayer& layer = *nnLayers[i];
+
 				bool indepInputs = i == first;
 				bool useInputs = true; //(i != lastL);
 				bool useOutputs = false; //(i != firstL);
@@ -56,8 +50,8 @@ namespace nn {
 				ioBufferSize += layer.expectedInputs();
 			}
 
-			inputs = NNLAYERS(0).expectedInputs();
-			outputs = NNLAYERS(NNLAYERS_SIZE - 1).expectedOutputs();
+			inputs = (*nnLayers[0]).expectedInputs();
+			outputs = (*nnLayers[nnLayers.size() - 1]).expectedOutputs();
 
 			ioBufferSize += outputs;
 		}
@@ -67,7 +61,7 @@ namespace nn {
 
 		inline int expectedBufferSize() { return ioBufferSize; }
 
-		inline vector<NeuronLayer>& getLayers() { return nnLayers; }
+		inline vector<INeuronLayer*>& getLayers() { return nnLayers; }
 
 		double* execute(double* inputs, size_t inLength) {
 			double* buffer = new double[ioBufferSize];
@@ -77,15 +71,15 @@ namespace nn {
 		}
 
 		double* executeToIOArray(double* buffer, size_t inLength, size_t bufferSize) {
-			if (inLength != NNLAYERS(0).expectedInputs())
+			if (inLength != (*nnLayers[0]).expectedInputs())
 				throw invalid_argument("Expected input size did not match given input size.");
 
 			if (ioBufferSize != bufferSize)
 				throw invalid_argument("Expected buffer size did not match given buffer size.");
 
 			double* inPtr = buffer;
-			for (int i = 0; i < NNLAYERS_SIZE; i++) {
-				NeuronLayer& layer = NNLAYERS(i);
+			for (int i = 0; i < nnLayers.size(); i++) {
+				INeuronLayer& layer = *nnLayers[i];
 				int inLen = layer.expectedInputs();
 				int outLen = layer.expectedOutputs();
 
@@ -95,23 +89,25 @@ namespace nn {
 				inPtr = outPtr;
 			}
 
-			return buffer + (ioBufferSize - nnLayers.back().expectedOutputs());
+			return buffer + (ioBufferSize - (*nnLayers.back()).expectedOutputs());
 		}
 
 		void display() {
 			printf("\nExpected in/out: %s/%s\n", to_string(inputs).c_str(), to_string(outputs).c_str());
 
-			if (NNLAYERS_SIZE == 1) {
+			if (nnLayers.size() == 1) {
 				printf("### Input Layer");
-				NNLAYERS(0).display();
+				(*nnLayers[0]).display();
 			}
-			else if (NNLAYERS_SIZE >= 2) {
+			else if (nnLayers.size() >= 2) {
+				vector<INeuronLayer*>::iterator it;
+
 				printf("### Input Layer");
-				NNLAYERS_FRONT.display();
+				(*nnLayers.front()).display();
 				printf("\n");
 
-				for (int i = 1; i < NNLAYERS_SIZE - 1; i++) {
-					NeuronLayer layer = NNLAYERS(i);
+				for (it = nnLayers.begin() + 1; it < nnLayers.end() - 1; it++) {
+					INeuronLayer& layer = **it;
 
 					printf("\n### Hidden Layer - %s", layer.name().c_str());
 					layer.display();
@@ -119,44 +115,41 @@ namespace nn {
 				}
 
 				printf("\n### Output Layer");
-				NNLAYERS_BACK.display();
+				(*nnLayers.back()).display();
 			}
 		}
 
-#define OTHER_NNLAYERS(i) std::get<i>(other.nnLayers)
-#define OTHER_NNLAYERS_FRONT std::get<0>(other.nnLayers)
-#define OTHER_NNLAYERS_BACK std::get<NNLAYERS_SIZE - 1>(other.nnLayers)
 		void displayChange(NeuralNetwork other) {
 			printf("Expected in/out: %s/%s\n", to_string(inputs).c_str(), to_string(outputs).c_str());
 
-			if (NNLAYERS_SIZE == 1) {
+			if (nnLayers.size() == 1) {
 				printf("### Input Layer");
-				NNLAYERS(0).display();
-				OTHER_NNLAYERS(0).display();
+				(*nnLayers[0]).display();
+				(*other.nnLayers[0]).display();
 			}
-			else if (NNLAYERS_SIZE >= 2) {
+			else if (nnLayers.size() >= 2) {
+				vector<INeuronLayer*>::iterator it, it2;
+
 				printf("### Input Layer");
-				NNLAYERS_FRONT.display();
-				OTHER_NNLAYERS_FRONT.display();
+				(*nnLayers.front()).display();
+				(*other.nnLayers.front()).display();
 				printf("\n");
 
-				for (int i = 1; i < NNLAYERS_SIZE - 1; i++) {
-					NeuronLayer layer = NNLAYERS(i);
-					NeuronLayer layer2 = OTHER_NNLAYERS(i);
+				for (it = nnLayers.begin() + 1, it2 = other.nnLayers.begin() + 1; it < nnLayers.end() - 1; it++) {
+					INeuronLayer& layer1 = **it;
+					INeuronLayer& layer2 = **it;
 
-					printf("\n### Hidden Layer - %s", layer.name().c_str());
-					layer.display();
+					printf("\n### Hidden Layer - %s", layer1.name().c_str());
+					layer1.display();
+					printf("\n### Hidden Layer - %s", layer2.name().c_str());
 					layer2.display();
 					printf("\n");
 				}
 
 				printf("\n### Output Layer");
-				NNLAYERS_BACK.display();
-				OTHER_NNLAYERS_BACK.display();
+				(*nnLayers.back()).display();
+				(*other.nnLayers.back()).display();
 			}
 		}
 	};
-
-	template<typename... Layers>
-	NeuralNetwork<Layers...> MakeNetwork(Layers... layers) { return NeuralNetwork(layers); }
 }

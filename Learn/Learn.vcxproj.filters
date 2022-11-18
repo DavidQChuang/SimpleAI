@@ -19,10 +19,16 @@
     <Filter Include="Header Files\ml">
       <UniqueIdentifier>{c1d19607-5aad-4a97-908b-e137e99015ca}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\nn">
+      <UniqueIdentifier>{b4edba2e-37e6-495b-9219-a2167c79a918}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Learn.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="nn\NeuronLayer.cpp">
+      <Filter>Source Files\nn</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -4,13 +4,14 @@
 #include <random>
 
 namespace nn {
-	enum class ActFunc {
+	enum class ScalarFunc {
 		Step, Linear, Siglog, Hypertan, ReLU, LeakyReLU, GeLU,
 	};
 
-	template<ActFunc Func>
-	class NeuronLayer {
-	private:
+	class INeuronLayer {
+	protected:
+		INeuronLayer() {}
+
 		int		mNeuronInputs = 0; // input per neuron
 		int		mNeuronOutputs = 0; // output per neuron
 		bool	mUseInputs = true;
@@ -28,22 +29,11 @@ namespace nn {
 		string	layerName = "";
 
 	public:
-		NeuronLayer(int count, string name = "Layer") {
+		INeuronLayer(int count, string name = "Layer") {
 			if (count == 0) throw out_of_range("Invalid neuron count, cannot be zero.");
 
 			neuronCount = count;
 			layerName = name;
-		}
-
-		NeuronLayer(int count, bool independentInputs, bool useInputs, string name = "Layer")
-			: NeuronLayer(count, name) {
-			overrideUseInputs = true;
-			overrideUseOutputs = true;
-			overrideIndependentInputs = true;
-
-			mUseInputs = useInputs;
-			mUseOutputs = false;
-			mIndependentInputs = independentInputs;
 		}
 
 		void init(int inputsPerNeuron, int outputsPerNeuron, bool independentInputs, bool useInputs, bool useOutputs) {
@@ -221,116 +211,84 @@ namespace nn {
 			printf("\n");
 		}
 
-		/*double vectorActivationFunc(double* output, ) {
-			double res = 0;
-
-			switch (func) {
-			case ActFunc::Softmax:
-				res = v < 0 ? 0 : 1;
-				break;
-			}
-
-			return res;
-		}*/
-
-		double activationFunc(double v) = 0;
-		double derivActivationFunc(double v) = 0;
+		virtual double activationFunc(double v) = 0;
+		virtual double derivActivationFunc(double v) = 0;
 	};
 
-#define NAN_V_MSG "Activation function input was NaN."
-#define NAN_DV_MSG "Activation function deriv input was NaN."
-#define CHECK_NAN(v, msg) if(v != v) throw invalid_argument(msg)
-
-	template<>
-	class NeuronLayer<ActFunc::Step> {
-	public:
-		double activationFunc(double v) {
-			CHECK_NAN(v, NAN_V_MSG);
-
-			return !signbit(v);
-		}
-
-		double derivActivationFunc(double v) {
-			CHECK_NAN(v, NAN_DV_MSG);
-
-			return 0;
-		}
+	template<ScalarFunc Func>
+	class FFNeuronLayer : public INeuronLayer {
+		double activationFunc(double v) override = 0;
+		double derivActivationFunc(double v) override = 0;
 	};
 
 	template<>
-	class NeuronLayer<ActFunc::Linear> {
+	class FFNeuronLayer<ScalarFunc::Step> : public INeuronLayer {
 	public:
-		double activationFunc(double v) {
-			CHECK_NAN(v, NAN_V_MSG);
+		FFNeuronLayer(int count, string name = "Layer")
+			: INeuronLayer(count, name) {}
 
-			return v;
-		}
-
-		double derivActivationFunc(double v) {
-			CHECK_NAN(v, NAN_DV_MSG);
-
-			return 1;
-		}
+		double activationFunc(double v) override;
+		double derivActivationFunc(double v) override;
 	};
 
 	template<>
-	class NeuronLayer<ActFunc::Siglog> {
+	class FFNeuronLayer<ScalarFunc::Linear> : public INeuronLayer {
 	public:
-		double activationFunc(double v) {
-			CHECK_NAN(v, NAN_V_MSG);
+		FFNeuronLayer(int count, string name = "Layer")
+			: INeuronLayer(count, name) {}
 
-			return 1.0 / (1.0 + exp(-v));
-		}
-
-		double derivActivationFunc(double v) {
-			CHECK_NAN(v, NAN_DV_MSG);
-
-			return v * (1.0 - v);
-		}
+		double activationFunc(double v) override;
+		double derivActivationFunc(double v) override;
 	};
 
 	template<>
-	class NeuronLayer<ActFunc::Hypertan> {
+	class FFNeuronLayer<ScalarFunc::Siglog> : public INeuronLayer {
 	public:
-		double activationFunc(double v) {
-			CHECK_NAN(v, NAN_V_MSG);
+		FFNeuronLayer(int count, string name = "Layer")
+			: INeuronLayer(count, name) {}
 
-			return tanh(v);
-		}
-
-		double derivActivationFunc(double v) {
-			CHECK_NAN(v, NAN_DV_MSG);
-
-			return 1.0 / pow(cosh(v), 2);
-		}
+		double activationFunc(double v) override;
+		double derivActivationFunc(double v) override;
 	};
 
 	template<>
-	class NeuronLayer<ActFunc::ReLU> {
+	class FFNeuronLayer<ScalarFunc::Hypertan> : public INeuronLayer {
 	public:
-		double activationFunc(double v) {
-			return max(0.0, v);
-		}
+		FFNeuronLayer(int count, string name = "Layer")
+			: INeuronLayer(count, name) {}
 
-		double derivActivationFunc(double v) {
-			CHECK_NAN(v, NAN_DV_MSG);
-
-			return !signbit(v);
-		}
+		double activationFunc(double v) override;
+		double derivActivationFunc(double v) override;
 	};
 
 	template<>
-	class NeuronLayer<ActFunc::LeakyReLU> {
+	class FFNeuronLayer<ScalarFunc::ReLU> : public INeuronLayer {
 	public:
-		double activationFunc(double v) {
-			return max(0.01 * v, v);
-		}
+		FFNeuronLayer(int count, string name = "Layer")
+			: INeuronLayer(count, name) {}
 
-		double derivActivationFunc(double v) {
-			CHECK_NAN(v, NAN_DV_MSG);
+		double activationFunc(double v) override;
+		double derivActivationFunc(double v) override;
+	};
 
-			return signbit(v) * 0.01 + !signbit(v);
-		}
+	template<>
+	class FFNeuronLayer<ScalarFunc::LeakyReLU> : public INeuronLayer {
+	public:
+		FFNeuronLayer(int count, string name = "Layer")
+			: INeuronLayer(count, name) {}
+
+		double activationFunc(double v) override;
+		double derivActivationFunc(double v) override;
+	};
+
+	template<>
+	class FFNeuronLayer<ScalarFunc::GeLU> : public INeuronLayer {
+	public:
+		FFNeuronLayer(int count, string name = "Layer")
+			: INeuronLayer(count, name) {}
+
+		double activationFunc(double v) override;
+		double derivActivationFunc(double v) override;
 	};
 
 #undef NAN_V_MSG

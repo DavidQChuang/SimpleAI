@@ -130,6 +130,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Learn.cpp" />
+    <ClCompile Include="nn\NeuronLayer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DLearnerListData.h" />
