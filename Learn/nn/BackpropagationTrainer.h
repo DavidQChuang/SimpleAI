@@ -13,11 +13,10 @@ namespace nn {
 		void trainOnSet(NeuralNetwork& network, double* inputs, double* expOutputs, double* buffer, double* outPtr) {
 			vector<double> layerDelta;
 			vector<double> oldLayerDelta;
-			vector<NeuronLayer>& layers = network.getLayers();
 
 			// Calculate target vs. nn output errors and store them in the layerDelta buffer.
 			int out = 0;
-			NeuronLayer& outputLayer = layers[layers.size() - 1];
+			NeuralNetwork::Layer& outputLayer = network.getLayer(network.depth() - 1);
 			for (int n = 0; n < outputLayer.size(); n++) {
 				double sumNN = 0;
 				double sumExp = 0;
@@ -34,8 +33,8 @@ namespace nn {
 			double* inPtr = outPtr;
 
 			// Update layer weights from back to front.
-			for (int l = layers.size() - 1; l >= 0; l--) {
-				NeuronLayer& layer = layers[l];
+			for (int l = network.depth() - 1; l >= 0; l--) {
+				NeuralNetwork::Layer& layer = network.getLayer(l);
 				vector<double>& weightsIn = layer.weightsIn();
 
 				inPtr -= layer.expectedInputs();

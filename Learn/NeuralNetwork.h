@@ -9,8 +9,11 @@ using namespace std;
 
 namespace nn {
 	class NeuralNetwork {
+	public:
+		typedef INeuronLayer Layer;
 	private:
-		vector<INeuronLayer*> nnLayers;
+		typedef vector<unique_ptr<INeuronLayer>> Layers;
+		vector<unique_ptr<INeuronLayer>> nnLayers;
 
 		int ioBufferSize;
 
@@ -18,12 +21,16 @@ namespace nn {
 		int outputs = 0;
 
 		NeuralNetwork() {
-			nnLayers = vector<INeuronLayer*>();
+			nnLayers = Layers();
 		}
 
 	public:
-		NeuralNetwork(initializer_list<INeuronLayer*> getLayers) {
-			nnLayers = getLayers;
+		NeuralNetwork(const initializer_list<INeuronLayer>& layersIl) {
+			nnLayers = Layers();
+
+			for (const INeuronLayer& layer : layersIl) {
+				nnLayers.push_back(std::make_unique<INeuronLayer>(&layer));
+			}
 
 			if (nnLayers.size() == 0) {
 				throw invalid_argument("The neural network cannot have zero layers.");
@@ -56,21 +63,27 @@ namespace nn {
 			ioBufferSize += outputs;
 		}
 
-		inline int expectedInputs() { return inputs; }
-		inline int expectedOutputs() { return outputs; }
+		inline int expectedInputs() const { return inputs; }
+		inline int expectedOutputs() const { return outputs; }
 
-		inline int expectedBufferSize() { return ioBufferSize; }
+		inline int expectedBufferSize() const { return ioBufferSize; }
 
-		inline vector<INeuronLayer*>& getLayers() { return nnLayers; }
+		inline Layer& getLayer(int i) {
+			return *nnLayers[i].get();
+		}
 
-		double* execute(double* inputs, size_t inLength) {
+		inline int depth() const {
+			return nnLayers.size();
+		}
+
+		double* execute(double* inputs, size_t inLength) const {
 			double* buffer = new double[ioBufferSize];
 			memcpy(buffer, inputs, inLength * sizeof(double));
 
 			return executeToIOArray(buffer, inLength, ioBufferSize);
 		}
 
-		double* executeToIOArray(double* buffer, size_t inLength, size_t bufferSize) {
+		double* executeToIOArray(double* buffer, size_t inLength, size_t bufferSize) const {
 			if (inLength != (*nnLayers[0]).expectedInputs())
 				throw invalid_argument("Expected input size did not match given input size.");
 
@@ -100,7 +113,7 @@ namespace nn {
 				(*nnLayers[0]).display();
 			}
 			else if (nnLayers.size() >= 2) {
-				vector<INeuronLayer*>::iterator it;
+				Layers::iterator it;
 
 				printf("### Input Layer");
 				(*nnLayers.front()).display();
@@ -128,7 +141,7 @@ namespace nn {
 				(*other.nnLayers[0]).display();
 			}
 			else if (nnLayers.size() >= 2) {
-				vector<INeuronLayer*>::iterator it, it2;
+				Layers::iterator it, it2;
 
 				printf("### Input Layer");
 				(*nnLayers.front()).display();

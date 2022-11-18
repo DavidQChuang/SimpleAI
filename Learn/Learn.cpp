@@ -62,7 +62,7 @@ inline void trainNN_Unsupervised(NeuralNetwork& net, T trainer,
 
 	printf("### TRAINING NETWORK ###\n---------------------------\n");
 
-	NeuralNetwork<Layers...> newNet = NeuralNetwork<Layers...>(net);
+	NeuralNetwork newNet = NeuralNetwork(net);
 
 	auto start = chrono::high_resolution_clock::now();
 	trainer.train(newNet, TRAINING_SETS, trainingIn, INPUTS);
@@ -116,8 +116,8 @@ inline void trainNN_Unsupervised(NeuralNetwork& net, T trainer,
 // The training algorithm used simply adjusts weights in the direction of error.
 void nnPerceptron() {
 	auto net = NeuralNetwork({
-		(INeuronLayer*) new FFNeuronLayer<ScalarFunc::Linear>(3, "in"),
-		(INeuronLayer*) new FFNeuronLayer<ScalarFunc::Step>(1, false, false, "out")
+		FFNeuronLayer<ScalarFunc::Linear>(3, "in"),
+		FFNeuronLayer<ScalarFunc::Step>(1, false, false, "out")
 	});
 
 	constexpr int TRAINING_SETS = 4;

@@ -18,7 +18,7 @@ namespace nn {
 		Eigen::VectorXd setError;
 		int				currSet;
 
-		double cost(int n, double* nnEstimate, double* actual) {
+		double cost(int n, const double* nnEstimate, const double* actual) {
 			double sum = 0;
 
 			for (int i = 0; i < n; i++) {
@@ -42,25 +42,29 @@ namespace nn {
 
 	protected:
 
-		virtual void trainOnSet(NeuralNetwork& network, double* inputs, double* expOutputs, double* buffer, double* outPtr) = 0;
-		virtual void trainOnEpoch(NeuralNetwork& network, int trainingSets, double* buffer,
-			double** inputSet, size_t inLength, double** expOutputSet, size_t outLength) {}
+		virtual void trainOnSet(NeuralNetwork& network,
+			const double* inputs, const double* expOutputs,
+			double* buffer, double* outPtr) {}
+
+		virtual void trainOnEpoch(NeuralNetwork& network,
+			int trainingSets, double* buffer,
+			const double** inputSet, size_t inLength,
+			const double** expOutputSet, size_t outLength) {}
 
 
-		virtual void initTraining(NeuralNetwork& network, int trainingSets,
-			double** inputSet, size_t inLength, double** expOutputSet, size_t outLength) {
-			if (network.expectedInputs() != inLength)
-				throw invalid_argument("Input of network and size of input buffer don't match.");
-			if (network.expectedOutputs() != outLength)
-				throw invalid_argument("Output of network and size of output buffer don't match.");
-		}
+		virtual void initTraining(NeuralNetwork& network,
+			int trainingSets,
+			const double** inputSet, size_t inLength,
+			const double** expOutputSet, size_t outLength) {}
 
-		virtual void initTrainingEpoch(NeuralNetwork& network, int trainingSets,
-			double** inputSet, size_t inLength, double** expOutputSet, size_t outLength) {
-		}
+		virtual void initTrainingEpoch(NeuralNetwork& network,
+			int trainingSets,
+			const double** inputSet, size_t inLength,
+			const double** expOutputSet, size_t outLength) {}
 
 		virtual void initTrainingSet(NeuralNetwork& network,
-			double* inputs, size_t inLength, double* expOutputs, size_t outLength) {}
+			const double* inputs, size_t inLength,
+			const double* expOutputs, size_t outLength) {}
 
 		virtual void cleanUp() {}
 
@@ -83,10 +87,19 @@ namespace nn {
 			epochTarget = epochs;
 		}
 
+	private:
+		// used in logging mse history
 		const int MSE_MAXC = 15;
 		const int MSE_TRAILC = 5;
+
+	public:
 		void train(NeuralNetwork& network, int trainingSets,
-			double** inputSet, size_t inLength, double** expOutputSet, size_t outLength) {
+			const double** inputSet,	 size_t inLength,
+			const double** expOutputSet, size_t outLength) {
+			if (network.expectedInputs() != inLength)
+				throw invalid_argument("Input of network and size of input buffer don't match.");
+			if (network.expectedOutputs() != outLength)
+				throw invalid_argument("Output of network and size of output buffer don't match.");
 
 			int bufferSize = network.expectedBufferSize();
 
@@ -105,9 +118,9 @@ namespace nn {
 				setError = Eigen::VectorXd(trainingSets);
 				// init setError before training
 				for (int i = 0; i < trainingSets; i++) {
-					double* inputs = inputSet[i];
-					double* expOutputs = expOutputSet[i];
-					double* outPtr = executeOnSet(network, buffer,
+					const double* inputs = inputSet[i];
+					const double* expOutputs = expOutputSet[i];
+					const double* outPtr = executeOnSet(network, buffer,
 						inputs, inLength, expOutputs, outLength);
 
 					double setMse = cost(outLength, outPtr, expOutputSet[i]);
@@ -123,8 +136,8 @@ namespace nn {
 					currSet = 0;
 
 					for (int i = 0; i < trainingSets; i++) {
-						double* inputs = inputSet[i];
-						double* expOutputs = expOutputSet[i];
+						const double* inputs = inputSet[i];
+						const double* expOutputs = expOutputSet[i];
 						double* outPtr = executeOnSet(network, buffer,
 							inputs, inLength, expOutputs, outLength);
 
@@ -212,12 +225,17 @@ namespace nn {
 			unique_ptr<double* []> inputSet(new double* [1] {inputs});
 			unique_ptr<double* []> expOutputSet(new double* [1] { expOutputs });
 
-			train(network, 1, inputSet.get(), inLength, expOutputSet.get(), outLength);
+			train(network,
+				1,
+				(const double**)inputSet.get(), inLength,
+				(const double**)expOutputSet.get(), outLength);
 		}
 
 	protected:
-		double* executeOnSet(NeuralNetwork& network, double* buffer,
-			double* inputs, size_t inLength, double* expOutputs, size_t outLength) {
+		double* executeOnSet(NeuralNetwork& network,
+			double* buffer,
+			const double* inputs,	  size_t inLength,
+			const double* expOutputs, size_t outLength) {
 
 			initTrainingSet(network, inputs, inLength, expOutputs, outLength);
 			memcpy(buffer, inputs, inLength * sizeof(double));
@@ -225,13 +243,15 @@ namespace nn {
 		}
 	private:
 		void displayResults(NeuralNetwork& network, double* buffer,
-			int trainingSets, double** inputSet, int inLength, double** expOutputSet, int outLength,
+			int trainingSets,
+			const double** inputSet, int inLength,
+			const double** expOutputSet, int outLength,
 			double mse, int e) {
 			bool failed = false;
 
 			for (int i = 0; i < trainingSets; i++) {
-				double* inputs = inputSet[i];
-				double* expOutputs = expOutputSet[i];
+				const double* inputs = inputSet[i];
+				const double* expOutputs = expOutputSet[i];
 
 				printf("\n\n### Training set #%d\n", i);
 				printf("\n%-10s | [ ", "Inputs");
@@ -257,7 +277,7 @@ namespace nn {
 				printf(" ]");
 
 				try {
-					double* outPtr = executeOnSet(network, buffer,
+					const double* outPtr = executeOnSet(network, buffer,
 						inputs, inLength, expOutputs, outLength);
 
 					printf("\n%-10s | [ ", "NNOutputs");

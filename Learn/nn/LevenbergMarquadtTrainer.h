@@ -31,17 +31,16 @@ namespace nn {
 		}
 
 	protected:
-
 		void initTraining(NeuralNetwork& network, int trainingSets,
-			double** inputSet, size_t inLength, double** expOutputSet, size_t outLength)
+			const double** inputSet, size_t inLength,
+			const double** expOutputSet, size_t outLength)
 		override {
 			SupervisedTrainer::initTraining(network, trainingSets,
 				inputSet, inLength, expOutputSet, outLength);
 
 			jacobianCols = 0;
-			auto layers = network.getLayers();
-			for (int l = 0; l < layers.size(); l++) {
-				auto layer = layers[l];
+			for (int l = 0; l < network.depth(); l++) {
+				NeuralNetwork::Layer& layer = network.getLayer(l);
 				jacobianCols += layer.size() * layer.inputsPerNeuron();
 			}
 
@@ -63,16 +62,18 @@ namespace nn {
 
 		void cleanUp() override {}
 
-		void trainOnSet(NeuralNetwork& network, double* inputs, double* expOutputs, double* buffer, double* outPtr) {
+		void trainOnSet(NeuralNetwork& network,
+			const double* inputs, const double* expOutputs,
+			double* buffer, double* outPtr)
+		override {
 			vector<double> layerDelta;
 			vector<double> oldLayerDelta;
-			vector<NeuronLayer>& layers = network.getLayers();
 
 			// Calculate target vs. nn output errors and store them in the errors buffer.
 			// The error cancels out for the output layer in the Levenberg-Marquadt equation,
 			// so the the delta of the output layer will just be 1 * f'(hi) instead of e * f'(hi).
 			int out = 0;
-			NeuronLayer& outputLayer = layers[layers.size() - 1];
+			NeuralNetwork::Layer& outputLayer = network.getLayer(network.depth() - 1);
 			for (int n = 0; n < outputLayer.size(); n++) {
 				layerDelta.push_back(1);
 			}
@@ -81,8 +82,8 @@ namespace nn {
 
 			int layerWeightIndex = jacobianCols;
 			// Update the jacobian matrix using the same deltas from normal backpropagation.
-			for (int l = layers.size() - 1; l >= 0; l--) {
-				NeuronLayer& layer = layers[l];
+			for (int l = network.depth() - 1; l >= 0; l--) {
+				NeuralNetwork::Layer& layer = network.getLayer(l);
 				vector<double>& weightsIn = layer.weightsIn();
 
 				inPtr -= layer.expectedInputs();
@@ -185,15 +186,14 @@ namespace nn {
 	private:
 		template<int factor>
 		void updateWeights(NeuralNetwork& network, Eigen::VectorXd F) {
-			vector<NeuronLayer>& layers = network.getLayers();
 			int l = 0;
-			vector<double>* weightsIn = &layers[0].weightsIn();
+			vector<double>* weightsIn = &network.getLayer(0).weightsIn();
 			int w = 0;
 			int wMax = weightsIn->size();
 			for (int i = 0; i < F.size(); i++) {
 				if (w >= wMax) {
 					w = 0;
-					weightsIn = &layers[++l].weightsIn();
+					weightsIn = &network.getLayer(++l).weightsIn();
 					wMax = weightsIn->size();
 				}
 

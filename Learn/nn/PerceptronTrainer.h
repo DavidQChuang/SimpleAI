@@ -5,29 +5,34 @@
 namespace nn {
 	class PerceptronTrainer : public SupervisedTrainer {
 	private:
-		NeuronLayer* layer;
+		NeuralNetwork::Layer* layer;
 		vector<double>* weightsInPtr;
 		int neurons;
 
 	protected:
 		void initTrainingSet(NeuralNetwork& network,
-			double* inputs, size_t inLength, double* expOutputs, size_t outLength) override {
+			const double* inputs, size_t inLength,
+			const double* expOutputs, size_t outLength)
+			override {
 			SupervisedTrainer::initTrainingSet(network, inputs, inLength, expOutputs, outLength);
 
-			if (network.getLayers().size() > 2)
+			if (network.depth() > 2)
 				throw invalid_argument("Perceptron trainer requires 1 inout layer or 1 in + 1 out layer. ");
 
 			if (outLength != 1)
 				throw invalid_argument("Perceptron requires 1 output.");
 
-			layer = &network.getLayers()[0];
+			layer = &network.getLayer(0);
 			weightsInPtr = &layer->weightsIn();
 			neurons = layer->size();
 
 			//inputOffset = network.getLayers().size() == 1 ? 0 : network.expectedInputs();
 		}
 
-		void trainOnSet(NeuralNetwork& network, double* inputs, double* expOutputs, double* buffer, double* outPtr) {
+		void trainOnSet(NeuralNetwork& network,
+			const double* inputs, const double* expOutputs,
+			double* buffer, double* outPtr)
+			override {
 			double error = expOutputs[0] - outPtr[0]; // target - result, positive if result was lower, negative if result was higher
 
 			int inputCount = layer->inputsPerNeuron();

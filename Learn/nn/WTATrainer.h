@@ -10,13 +10,12 @@ namespace nn {
 		void initTrainingSet(NeuralNetwork& network, double* inputs, size_t inLength) override {
 			UnsupervisedTrainer::initTrainingSet(network, inputs, inLength);
 
-			if (network.getLayers().size() > 2)
+			if (network.depth() > 2)
 				throw invalid_argument("Winner-takes-all trainer requires 1 inout layer or 1 in + 1 out layer. ");
 		}
 
 		void trainOnEpoch(NeuralNetwork& network, double* inputs, double* buffer, double* outPtr) {
-			vector<NeuronLayer>& layers = network.getLayers();
-			NeuronLayer& outputLayer = layers[layers.size() - 1];
+			NeuralNetwork::Layer& outputLayer = network.getLayer(network.depth() - 1);
 			vector<double>& weightsIn = outputLayer.weightsIn();
 
 			int neuronCount = outputLayer.size();
