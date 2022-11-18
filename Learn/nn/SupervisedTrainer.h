@@ -28,6 +28,18 @@ namespace nn {
 			return sum / n;
 		}
 
+		struct MseHist {
+		public:
+			int epoch;
+			double mse;
+
+			MseHist(int ep, double err) : epoch(ep), mse(err) {}
+
+			static bool comp(const MseHist& h1, const MseHist& h2) {
+				return h1.mse < h2.mse;
+			}
+		};
+
 	protected:
 
 		virtual void trainOnSet(NeuralNetwork& network, double* inputs, double* expOutputs, double* buffer, double* outPtr) = 0;
@@ -71,7 +83,8 @@ namespace nn {
 			epochTarget = epochs;
 		}
 
-		const int MAX_MSE_HISTORY = 15;
+		const int MSE_MAXC = 15;
+		const int MSE_TRAILC = 5;
 		void train(NeuralNetwork& network, int trainingSets,
 			double** inputSet, size_t inLength, double** expOutputSet, size_t outLength) {
 
@@ -80,9 +93,13 @@ namespace nn {
 			unique_ptr<double[]> bufferPtr(new double[bufferSize]);
 			double* buffer = bufferPtr.get();
 
-			vector<double> mseHistory;
+#ifndef FAST_MODE
+			vector<MseHist> mseHistory;
+			mseHistory.reserve(MSE_TRAILC * 2 + MSE_MAXC + 1);
+			int mseRecordMod = (epochTarget - MSE_TRAILC) / MSE_MAXC;
+#endif
 
-			double mse;
+			double mse = 0;
 			int e = 0;
 			try {
 				setError = Eigen::VectorXd(trainingSets);
@@ -122,10 +139,18 @@ namespace nn {
 						inputSet, inLength, expOutputSet, outLength);
 
 					mse = setError.sum() / trainingSets;
-					mseHistory.push_back(mse);
+#ifndef FAST_MODE
+					mseHistory.push_back(MseHist(e, mse));
+#endif
 
 					if (mse <= errorTarget) break;
 					else if (mse > mseMax) break;
+
+#ifndef FAST_MODE
+					if (mseHistory.size() > MSE_TRAILC * 2 + MSE_MAXC) {
+						mseHistory.erase(mseHistory.begin() + MSE_TRAILC + e / mseRecordMod);
+					}
+#endif
 
 					e++;
 				}
@@ -136,41 +161,50 @@ namespace nn {
 			}
 
 			cleanUp();
+
+#ifndef FAST_MODE
 			displayResults(network, buffer, trainingSets,
 				inputSet, inLength, expOutputSet, outLength, mse, e);
 
-
 			printf("%-10s | -", "MSE Trend");
+			if (!mseHistory.empty()) {
+				MseHist maxMse = *max_element(mseHistory.begin(), mseHistory.end(), &MseHist::comp);
+				MseHist minMse = *min_element(mseHistory.begin(), mseHistory.end(), &MseHist::comp);
+				double mseRange = maxMse.mse - minMse.mse;
 
-			double maxMse = *max_element(mseHistory.begin(), mseHistory.end());
-			double minMse = *min_element(mseHistory.begin(), mseHistory.end());
-			double mseRange = maxMse - minMse;
-			printf("\nMin [ %.6e ] -> Max [ %.6e ]", minMse, maxMse);
-			double prevMse = 0;
-			int mseRecordMod = epochTarget / MAX_MSE_HISTORY;
-			for (int i = 0; i < mseHistory.size(); i++) {
-				if (i < 5 || i % mseRecordMod == 0 || e - i <= 5) {
-					mse = mseHistory[i];
+				printf("\nMin [ %.6e ] -> Max [ %.6e ]", minMse.mse, maxMse.mse);
 
-					const char* result;
-					if (mse > prevMse)
-						result = "\x1B[31m>\033[0m";
-					else if (mse < prevMse)
-						result = "\x1B[32m<\033[0m";
+				double prevMse = 0;
+				for (int i = 0; i < mseHistory.size(); i++) {
+					MseHist entry = mseHistory[i];
+
+					const char* compare;
+					if (entry.mse > prevMse)
+						compare = "\x1B[31m>\033[0m";
+					else if (entry.mse < prevMse)
+						compare = "\x1B[32m<\033[0m";
 					else
-						result = "=";
+						compare = "=";
 
-					printf("\n%-10d | [ %.6e %s ] ", i, mse, result);
+					printf("\n%-10d | [ %.6e %s ] ", entry.epoch + 1, entry.mse, compare);
 
-					int starCount = (int)(24 * (mse - minMse) / mseRange);
+					int starCount = (int)(24 * (entry.mse - minMse.mse) / mseRange);
+					if (starCount == 0 || starCount > 24) {
+						mseRange = entry.mse - minMse.mse;
+						starCount = (int)(24 * (entry.mse - minMse.mse) / mseRange);
+					}
 					for (int n = 0; n < starCount; n++) {
 						printf("*");
 					}
 
-					prevMse = mse;
+					prevMse = entry.mse;
 				}
+				printf("\n");
 			}
-			printf("\n");
+			else {
+				printf("None");
+			}
+#endif
 		}
 
 		void train(NeuralNetwork& network,

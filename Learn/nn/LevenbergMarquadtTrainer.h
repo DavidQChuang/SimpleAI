@@ -157,7 +157,6 @@ namespace nn {
 			//std::cout << "TEST F: " << F << std::endl;
 			
 			updateWeights<1>(network, Wd);
-
 			/*
 			// Recalculate MSE after weight update
 			for (int i = 0; i < trainingSets; i++) {

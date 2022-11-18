@@ -9,6 +9,7 @@
 #include "DescriptionLearner.h"
 #include "ml/DLearnerListData.h"
 
+//#define FAST_MODE
 #include "NeuralNetwork.h"
 #include "nn/PerceptronTrainer.h"
 #include "nn/AdalineTrainer.h"
@@ -33,40 +34,42 @@ void descriptionLearner() {
 #define DELETE_VALIDATION_DATA(n) for(int _i = 0; _i < VALIDATION_SETS; _i++) \
 { delete[] n[_i]; } delete[] n; n = nullptr;
 
-template<class T>
-inline void trainNN_Supervised(nn::NeuralNetwork& net, T trainer, 
+template<typename... Layers, class T>
+inline void trainNN_Supervised(nn::NeuralNetwork<Layers...>& net, T trainer, 
 	int TRAINING_SETS, double** trainingIn, int INPUTS, double** trainingOut,
 	int OUTPUTS) {
 
 	printf("### TRAINING NETWORK ###\n---------------------------\n");
 
-	nn::NeuralNetwork newNet = nn::NeuralNetwork(net);
+	nn::NeuralNetwork<Layers...> newNet = nn::NeuralNetwork<Layers...>(net);
 
 	auto start = chrono::high_resolution_clock::now();
 	trainer.train(newNet, TRAINING_SETS, trainingIn, INPUTS, trainingOut, OUTPUTS);
 	auto stop = chrono::high_resolution_clock::now();
 
-	printf("\n### NETWORK AFTER TRAINING ###\n---------------------------\nExec time: %lldus\n",
-		chrono::duration_cast<chrono::microseconds>(stop - start).count());
+	printf("\n### NETWORK AFTER TRAINING ###\n---------------------------\n");
 	net.displayChange(newNet);
+	printf("Exec time: %lldus\n",
+		chrono::duration_cast<chrono::microseconds>(stop - start).count());
 }
 
-template<class T>
-inline void trainNN_Unsupervised(nn::NeuralNetwork& net, T trainer,
+template<typename... Layers, class T>
+inline void trainNN_Unsupervised(nn::NeuralNetwork<Layers...>& net, T trainer,
 	int TRAINING_SETS, double** trainingIn, int INPUTS, int OUTPUTS,
 	double** validation, int VALIDATION_SETS) {
 
 	printf("### TRAINING NETWORK ###\n---------------------------\n");
 
-	nn::NeuralNetwork newNet = nn::NeuralNetwork(net);
+	nn::NeuralNetwork<Layers...> newNet = nn::NeuralNetwork<Layers...>(net);
 
 	auto start = chrono::high_resolution_clock::now();
 	trainer.train(newNet, TRAINING_SETS, trainingIn, INPUTS);
 	auto stop = chrono::high_resolution_clock::now();
 
-	printf("\n### NETWORK AFTER TRAINING ###\n---------------------------\nExec time: %lldus\n",
-		chrono::duration_cast<chrono::microseconds>(stop - start).count());
+	printf("\n### NETWORK AFTER TRAINING ###\n---------------------------\n");
 	net.displayChange(newNet);
+	printf("Exec time: %lldus\n",
+		chrono::duration_cast<chrono::microseconds>(stop - start).count());
 
 	printf("\n### VERIFICATION ###\n---------------------------\n");
 	for (int s = 0; s < VALIDATION_SETS; s++) {
@@ -110,10 +113,10 @@ inline void trainNN_Unsupervised(nn::NeuralNetwork& net, T trainer,
 // Training a single-layer perceptron to emulate an AND operation.
 // The training algorithm used simply adjusts weights in the direction of error.
 void nnPerceptron() {
-	nn::NeuralNetwork net({
-		nn::NeuronLayer(3, nn::ActFunc::Linear, "in"),
-		nn::NeuronLayer(1, nn::ActFunc::Step, false, false, "out")
-		});
+	auto net = nn::MakeNetwork(
+		nn::NeuronLayer<nn::ActFunc::Linear>(3, "in"),
+		nn::NeuronLayer<nn::ActFunc::Step>(1, false, false, "out")
+	);
 
 	constexpr int TRAINING_SETS = 4;
 	constexpr int INPUTS = 3;
@@ -146,10 +149,10 @@ void nnPerceptron() {
 // The training algorithm used adjusts weights in the direction of error times 
 // the derivative of the activation function.
 void nnAdaline() {
-	nn::NeuralNetwork net({
-		nn::NeuronLayer(4, nn::ActFunc::Linear, "in"),
-		nn::NeuronLayer(1, nn::ActFunc::Linear, false, false, "out")
-		});
+	auto net = nn::MakeNetwork(
+		nn::NeuronLayer<nn::ActFunc::Linear>(4, "in"),
+		nn::NeuronLayer<nn::ActFunc::Linear>(1, false, false, "out")
+	);
 
 	constexpr int TRAINING_SETS = 7;
 	constexpr int INPUTS = 4;
@@ -174,7 +177,7 @@ void nnAdaline() {
 		OUTPUT { 0.10 },
 	};
 
-	nn::AdalineTrainer trainer = nn::AdalineTrainer(0.1, 2e-4, 1000);
+	nn::AdalineTrainer trainer = nn::AdalineTrainer(0.25, 5e-4, 10000000);
 
 	trainNN_Supervised(net, trainer, TRAINING_SETS, trainingIn, INPUTS, trainingOut, OUTPUTS);
 
@@ -186,11 +189,11 @@ void nnAdaline() {
 // The inputs are ...
 // The training algorithm used adjusts weights ...
 void nnBackpropagation() {
-	nn::NeuralNetwork net({
-		nn::NeuronLayer(3, nn::ActFunc::Linear, "in"),
-		nn::NeuronLayer(3, nn::ActFunc::Siglog, "hidden"),
-		nn::NeuronLayer(2, nn::ActFunc::Linear, "out")
-		});
+	auto net = nn::MakeNetwork(
+		nn::NeuronLayer<nn::ActFunc::Linear>(3, "in"),
+		nn::NeuronLayer<nn::ActFunc::Linear>(3, "hidden"),
+		nn::NeuronLayer<nn::ActFunc::Linear>(2, "out")
+	);
 
 	constexpr int TRAINING_SETS = 10;
 	constexpr int INPUTS = 3;
@@ -232,11 +235,11 @@ void nnBackpropagation() {
 // The inputs are ...
 // The training algorithm used adjusts weights ...
 void nnLevenbergMarquadt() {
-	nn::NeuralNetwork net({
-		nn::NeuronLayer(3, nn::ActFunc::Linear, "in"),
-		nn::NeuronLayer(3, nn::ActFunc::Siglog, "hidden"),
-		nn::NeuronLayer(2, nn::ActFunc::Linear, "out")
-		});
+	auto net = nn::MakeNetwork(
+		nn::NeuronLayer<nn::ActFunc::Linear>(3, "in"),
+		nn::NeuronLayer<nn::ActFunc::Siglog>(3, "hidden"),
+		nn::NeuronLayer<nn::ActFunc::Linear>(2, "out")
+	);
 
 	constexpr int TRAINING_SETS = 10;
 	constexpr int INPUTS = 3;
@@ -278,10 +281,10 @@ void nnLevenbergMarquadt() {
 // The inputs are ...
 // The training algorithm used adjusts weights ...
 void nnWTA() {
-	nn::NeuralNetwork net({
-		nn::NeuronLayer(3, nn::ActFunc::Linear, "in"),
-		nn::NeuronLayer(2, nn::ActFunc::Linear, "out")
-		});
+	auto net = nn::MakeNetwork(
+		nn::NeuronLayer<nn::ActFunc::Linear>(3, "in"),
+		nn::NeuronLayer<nn::ActFunc::Linear>(2, "out")
+	);
 
 	constexpr int TRAINING_SETS = 6;
 	constexpr int VALIDATION_SETS = 2;
@@ -314,11 +317,11 @@ void nnWTA() {
 // The inputs are ...
 // The training algorithm used adjusts weights ...
 void nnKohonen() {
-	nn::NeuralNetwork net({
-		nn::NeuronLayer(3, nn::ActFunc::Siglog, "in"),
-		nn::NeuronLayer(3, nn::ActFunc::Siglog, "hidden"),
-		nn::NeuronLayer(2, nn::ActFunc::Linear, "out")
-		});
+	auto net = nn::MakeNetwork(
+		nn::NeuronLayer<nn::ActFunc::Siglog>(3, "in"),
+		nn::NeuronLayer<nn::ActFunc::Siglog>(3, "hidden"),
+		nn::NeuronLayer<nn::ActFunc::Linear>(2, "out")
+	);
 
 	constexpr int TRAINING_SETS = 6;
 	constexpr int VALIDATION_SETS = 2;

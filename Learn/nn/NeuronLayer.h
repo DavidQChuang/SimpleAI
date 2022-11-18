@@ -8,6 +8,7 @@ namespace nn {
 		Step, Linear, Siglog, Hypertan, ReLU, LeakyReLU, GeLU,
 	};
 
+	template<ActFunc Func>
 	class NeuronLayer {
 	private:
 		int		mNeuronInputs = 0; // input per neuron
@@ -20,8 +21,6 @@ namespace nn {
 		vector<double> inputWeights;
 		vector<double> outputWeights;
 
-		ActFunc func = ActFunc::Step;
-
 		bool overrideUseInputs = false;
 		bool overrideUseOutputs = false;
 		bool overrideIndependentInputs = false;
@@ -29,16 +28,15 @@ namespace nn {
 		string	layerName = "";
 
 	public:
-		NeuronLayer(int count, ActFunc f, string name = "Layer") {
+		NeuronLayer(int count, string name = "Layer") {
 			if (count == 0) throw out_of_range("Invalid neuron count, cannot be zero.");
 
 			neuronCount = count;
-			func = f;
 			layerName = name;
 		}
 
-		NeuronLayer(int count, ActFunc f, bool independentInputs, bool useInputs, string name = "Layer") 
-			: NeuronLayer(count, f, name) {
+		NeuronLayer(int count, bool independentInputs, bool useInputs, string name = "Layer")
+			: NeuronLayer(count, name) {
 			overrideUseInputs = true;
 			overrideUseOutputs = true;
 			overrideIndependentInputs = true;
@@ -108,14 +106,14 @@ namespace nn {
 			return mNeuronInputs * (neuronCount * mIndependentInputs + 1 - mIndependentInputs);
 		}
 		inline int expectedOutputs() { return mNeuronOutputs * neuronCount; }
-		
+
 		inline int inputsPerNeuron() { return mNeuronInputs; }
 		inline int outputsPerNeuron() { return mNeuronOutputs; }
 
 		inline int size() { return neuronCount; }
 		inline string name() { return layerName; }
 
-		inline bool independentInputs() { return mIndependentInputs;}
+		inline bool independentInputs() { return mIndependentInputs; }
 
 		inline vector<double>& weightsIn() {
 			if (mUseInputs) {
@@ -235,86 +233,107 @@ namespace nn {
 			return res;
 		}*/
 
+		double activationFunc(double v) = 0;
+		double derivActivationFunc(double v) = 0;
+	};
+
+#define NAN_V_MSG "Activation function input was NaN."
+#define NAN_DV_MSG "Activation function deriv input was NaN."
+#define CHECK_NAN(v, msg) if(v != v) throw invalid_argument(msg)
+
+	template<>
+	class NeuronLayer<ActFunc::Step> {
+	public:
 		double activationFunc(double v) {
-			double res;
+			CHECK_NAN(v, NAN_V_MSG);
 
-			if (v != v)
-				throw invalid_argument("Activation function input was NaN.");
-
-			switch (func) {
-			case ActFunc::Step:
-				res = !signbit(v);
-				break;
-
-			case ActFunc::Linear:
-				res =  v;
-				break;
-
-			case ActFunc::Siglog:
-				res =  1.0 / (1.0 + exp(-v));
-				break;
-
-			case ActFunc::Hypertan:
-				res = tanh(v);
-				break;
-
-			case ActFunc::ReLU:
-				res = max(0.0, v);
-				break;
-
-			case ActFunc::LeakyReLU:
-				res = max(0.01 * v, v);
-				break;
-
-			case ActFunc::GeLU:
-				res = 0;
-				break;
-
-			default:
-				throw invalid_argument("There is no function for this activation function type.");
-			}
-
-			if (res != res)
-				throw invalid_argument("Activation function resulted in NaN.");
-
-			return res;
+			return !signbit(v);
 		}
 
 		double derivActivationFunc(double v) {
-			double res;
+			CHECK_NAN(v, NAN_DV_MSG);
 
-			if (v != v)
-				throw invalid_argument("Activation function deriv input was NaN.");
-
-			switch (func) {
-			case ActFunc::Linear:
-				res =  1;
-				break;
-
-			case ActFunc::Siglog:
-				res =  v * (1.0 - v);
-				break;
-
-			case ActFunc::Hypertan:
-				res = 1.0 / pow(cosh(v), 2);
-				break;
-
-			case ActFunc::ReLU: // 0 or 1
-				res = !signbit(v);
-				break;
-
-			case ActFunc::LeakyReLU:
-				res = signbit(v) * 0.01 + !signbit(v);
-				break;
-
-			default:
-				throw invalid_argument("There is no derivative for this activation function type.");
-			}
-
-			if (res != res)
-				throw invalid_argument("Activation function deriv resulted in NaN.");
-
-			return res;
+			return 0;
 		}
 	};
+
+	template<>
+	class NeuronLayer<ActFunc::Linear> {
+	public:
+		double activationFunc(double v) {
+			CHECK_NAN(v, NAN_V_MSG);
+
+			return v;
+		}
+
+		double derivActivationFunc(double v) {
+			CHECK_NAN(v, NAN_DV_MSG);
+
+			return 1;
+		}
+	};
+
+	template<>
+	class NeuronLayer<ActFunc::Siglog> {
+	public:
+		double activationFunc(double v) {
+			CHECK_NAN(v, NAN_V_MSG);
+
+			return 1.0 / (1.0 + exp(-v));
+		}
+
+		double derivActivationFunc(double v) {
+			CHECK_NAN(v, NAN_DV_MSG);
+
+			return v * (1.0 - v);
+		}
+	};
+
+	template<>
+	class NeuronLayer<ActFunc::Hypertan> {
+	public:
+		double activationFunc(double v) {
+			CHECK_NAN(v, NAN_V_MSG);
+
+			return tanh(v);
+		}
+
+		double derivActivationFunc(double v) {
+			CHECK_NAN(v, NAN_DV_MSG);
+
+			return 1.0 / pow(cosh(v), 2);
+		}
+	};
+
+	template<>
+	class NeuronLayer<ActFunc::ReLU> {
+	public:
+		double activationFunc(double v) {
+			return max(0.0, v);
+		}
+
+		double derivActivationFunc(double v) {
+			CHECK_NAN(v, NAN_DV_MSG);
+
+			return !signbit(v);
+		}
+	};
+
+	template<>
+	class NeuronLayer<ActFunc::LeakyReLU> {
+	public:
+		double activationFunc(double v) {
+			return max(0.01 * v, v);
+		}
+
+		double derivActivationFunc(double v) {
+			CHECK_NAN(v, NAN_DV_MSG);
+
+			return signbit(v) * 0.01 + !signbit(v);
+		}
+	};
+
+#undef NAN_V_MSG
+#undef NAN_DV_MSG
+#undef CHECK_NAN
 }
