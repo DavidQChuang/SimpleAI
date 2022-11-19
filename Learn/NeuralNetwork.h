@@ -24,7 +24,7 @@ namespace nn {
 		NeuralNetwork() { }
 
 	public:
-		static NeuralNetwork&& MakeNetwork(initializer_list<Layer*> layerArgs) {
+		static NeuralNetwork MakeNetwork(initializer_list<Layer*> layerArgs) {
 			return NeuralNetwork(layerArgs);
 		};
 

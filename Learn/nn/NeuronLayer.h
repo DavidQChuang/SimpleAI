@@ -121,18 +121,7 @@ namespace nn {
 		inline bool independentInputs() { return mIndependentInputs; }
 
 		inline std::vector<double>& weightsIn() {
-			if (mUseInputs) {
-				return inputWeights;
-			}
-			else {
-				int inputs = mNeuronInputs * neuronCount;
-				auto weights = std::vector<double>(inputs);
-				for (int i = 0; i < inputs; i++) {
-					weights[i] = 1;
-				}
-
-				return weights;
-			}
+			return inputWeights;
 		}
 
 		inline std::vector<double>& weightsOut() {
