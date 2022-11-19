@@ -422,12 +422,16 @@ int main()
 
 		if (val.size() > 0) {
 			char ch = val.c_str()[0];
+#ifndef _DEBUG
 			try {
+#endif
 				execute(ch);
+#ifndef _DEBUG
 			}
 			catch (exception e) {
 				printf("Failed: %s", e.what());
 			}
+#endif
 		} // if 
 		printf("\n\n");
 	} // for
