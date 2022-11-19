@@ -1,6 +1,5 @@
 #include "NeuronLayer.h"
 
-#include <stdexcept>
 #include <cmath>
 
 #define CHECK_NAN(v, msg) if(v != v) throw std::invalid_argument(msg)

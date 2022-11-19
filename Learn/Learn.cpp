@@ -38,8 +38,9 @@ void descriptionLearner() {
 
 template<class T>
 inline void trainNN_Supervised(NeuralNetwork& net, T trainer, 
-	int TRAINING_SETS, double** trainingIn, int INPUTS, double** trainingOut,
-	int OUTPUTS) {
+	int TRAINING_SETS,
+	double** trainingIn, int INPUTS, double** trainingOut, int OUTPUTS)
+{
 
 	printf("### TRAINING NETWORK ###\n---------------------------\n");
 
@@ -58,8 +59,8 @@ inline void trainNN_Supervised(NeuralNetwork& net, T trainer,
 template<class T>
 inline void trainNN_Unsupervised(NeuralNetwork& net, T trainer,
 	int TRAINING_SETS, double** trainingIn, int INPUTS, int OUTPUTS,
-	double** validation, int VALIDATION_SETS) {
-
+	double** validation, int VALIDATION_SETS)
+{
 	printf("### TRAINING NETWORK ###\n---------------------------\n");
 
 	NeuralNetwork newNet = NeuralNetwork(net);
@@ -115,7 +116,7 @@ inline void trainNN_Unsupervised(NeuralNetwork& net, T trainer,
 // Training a single-layer perceptron to emulate an AND operation.
 // The training algorithm used simply adjusts weights in the direction of error.
 void nnPerceptron() {
-	auto net = NeuralNetwork({
+	auto net = NeuralNetwork::MakeNetwork({
 		new FFNeuronLayer<ScalarFunc::Linear>(3, "in"),
 		new FFNeuronLayer<ScalarFunc::Step>(1, false, false, "out")
 	});
@@ -151,7 +152,7 @@ void nnPerceptron() {
 // The training algorithm used adjusts weights in the direction of error times 
 // the derivative of the activation function.
 void nnAdaline() {
-	auto net = NeuralNetwork({
+	auto net = NeuralNetwork::MakeNetwork({
 		new FFNeuronLayer<ScalarFunc::Linear>(4, "in"),
 		new FFNeuronLayer<ScalarFunc::Linear>(1, false, false, "out")
 	});
@@ -191,7 +192,7 @@ void nnAdaline() {
 // The inputs are ...
 // The training algorithm used adjusts weights ...
 void nnBackpropagation() {
-	auto net = NeuralNetwork({
+	auto net = NeuralNetwork::MakeNetwork({
 		new FFNeuronLayer<ScalarFunc::Linear>(3, "in"),
 		new FFNeuronLayer<ScalarFunc::Linear>(3, "hidden"),
 		new FFNeuronLayer<ScalarFunc::Linear>(2, "out")
@@ -237,7 +238,7 @@ void nnBackpropagation() {
 // The inputs are ...
 // The training algorithm used adjusts weights ...
 void nnLevenbergMarquadt() {
-	auto net = NeuralNetwork({
+	auto net = NeuralNetwork::MakeNetwork({
 		new FFNeuronLayer<ScalarFunc::Linear>(3, "in"),
 		new FFNeuronLayer<ScalarFunc::Siglog>(3, "hidden"),
 		new FFNeuronLayer<ScalarFunc::Linear>(2, "out")
@@ -283,7 +284,7 @@ void nnLevenbergMarquadt() {
 // The inputs are ...
 // The training algorithm used adjusts weights ...
 void nnWTA() {
-	auto net = NeuralNetwork({
+	auto net = NeuralNetwork::MakeNetwork({
 		new FFNeuronLayer<ScalarFunc::Linear>(3, "in"),
 		new FFNeuronLayer<ScalarFunc::Linear>(2, "out")
 	});
@@ -319,7 +320,7 @@ void nnWTA() {
 // The inputs are ...
 // The training algorithm used adjusts weights ...
 void nnKohonen() {
-	auto net = NeuralNetwork({
+	auto net = NeuralNetwork::MakeNetwork({
 		new FFNeuronLayer<ScalarFunc::Siglog>(3, "in"),
 		new FFNeuronLayer<ScalarFunc::Siglog>(3, "hidden"),
 		new FFNeuronLayer<ScalarFunc::Linear>(2, "out")

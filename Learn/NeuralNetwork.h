@@ -5,31 +5,49 @@
 
 #include "nn/NeuronLayer.h"
 
-using namespace std;
-
 namespace nn {
 	class NeuralNetwork {
 	public:
 		typedef INeuronLayer Layer;
+
 	private:
-		typedef vector<unique_ptr<Layer>> Layers;
+		typedef vector<std::unique_ptr<Layer>> Layers;
+
+		// fields
 		Layers nnLayers;
 
 		int ioBufferSize;
 
 		int inputs = 0;
 		int outputs = 0;
-
-		NeuralNetwork() {
-			nnLayers = Layers();
-		}
+		
+		NeuralNetwork() { }
 
 	public:
-		NeuralNetwork(const initializer_list<INeuronLayer*>& layersIl) {
+		static NeuralNetwork&& MakeNetwork(initializer_list<Layer*> layerArgs) {
+			return NeuralNetwork(layerArgs);
+		};
+
+		NeuralNetwork(const NeuralNetwork& net) {
 			nnLayers = Layers();
 
-			for (const INeuronLayer* layer : layersIl) {
-				nnLayers.push_back(std::make_unique<Layer>(layer));
+			for (const std::unique_ptr<Layer>& layer : net.nnLayers) {
+				Layer* layerCpy = layer.get()->clone();
+
+				nnLayers.push_back(std::unique_ptr<Layer>(layerCpy));
+			}
+
+			ioBufferSize = net.ioBufferSize;
+			inputs = net.inputs;
+			outputs = net.outputs;
+		}
+		~NeuralNetwork() = default;
+
+		NeuralNetwork(std::initializer_list<Layer*> layerArgs) {
+			nnLayers = Layers();
+
+			for (Layer* layer : layerArgs) {
+				nnLayers.push_back(std::move(std::unique_ptr<Layer>(layer)));
 			}
 
 			if (nnLayers.size() == 0) {
@@ -63,6 +81,7 @@ namespace nn {
 			ioBufferSize += outputs;
 		}
 
+	public:
 		inline int expectedInputs() const { return inputs; }
 		inline int expectedOutputs() const { return outputs; }
 
