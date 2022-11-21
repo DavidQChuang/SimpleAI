@@ -4,6 +4,7 @@
 #include <random>
 #include <string>
 #include <stdexcept>
+#include <functional>
 
 namespace nn {
 	enum class ScalarFunc {
@@ -103,6 +104,42 @@ namespace nn {
 				outputWeights = std::vector<double>(outputs);
 				for (int i = 0; i < outputs; i++) {
 					outputWeights[i] = value;
+				}
+			}
+		}
+
+		void initWeights(std::function<double()> f) {
+			if (mUseInputs) {
+				int inputs = mNeuronInputs * neuronCount;
+				inputWeights = std::vector<double>(inputs);
+				for (int i = 0; i < inputs; i++) {
+					inputWeights[i] = f();
+				}
+			}
+
+			if (mUseOutputs) {
+				int outputs = mNeuronOutputs * neuronCount;
+				outputWeights = std::vector<double>(outputs);
+				for (int i = 0; i < outputs; i++) {
+					outputWeights[i] = f();
+				}
+			}
+		}
+
+		void initWeights(std::function<double()> fin, std::function<double()> fout) {
+			if (mUseInputs) {
+				int inputs = mNeuronInputs * neuronCount;
+				inputWeights = std::vector<double>(inputs);
+				for (int i = 0; i < inputs; i++) {
+					inputWeights[i] = fin();
+				}
+			}
+
+			if (mUseOutputs) {
+				int outputs = mNeuronOutputs * neuronCount;
+				outputWeights = std::vector<double>(outputs);
+				for (int i = 0; i < outputs; i++) {
+					outputWeights[i] = fout();
 				}
 			}
 		}

@@ -1,5 +1,6 @@
 #include "NeuronLayer.h"
 
+#define _USE_MATH_DEFINES
 #include <cmath>
 
 #define CHECK_NAN(v, msg) if(v != v) throw std::invalid_argument(msg)
@@ -92,7 +93,7 @@ namespace nn {
 	double FFNeuronLayer<ScalarFunc::GeLU>::derivActivationFunc(double v) {
 		CHECK_NAN(v, NAN_DV_MSG);
 
-		static const float inv_sqrt_2pi = 0.3989422804014327;
+		static const double inv_sqrt_2pi = 0.3989422804014327;
 
 		double cdf = (1 + erf(v / sqrt(2))) / 2;
 		double pdf = inv_sqrt_2pi * std::exp(-0.5f * v * v);

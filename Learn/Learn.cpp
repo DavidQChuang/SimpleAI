@@ -4,6 +4,9 @@
 * Neural Network: Alan Souza, Fábio Soares - Neural Network Programming with Java (2016)
 */
 
+#define _USE_MATH_DEFINES
+#include <cmath>
+
 #include <iostream>
 #include <chrono>
 #include "DescriptionLearner.h"
@@ -180,12 +183,37 @@ void nnAdaline() {
 		OUTPUT { 0.10 },
 	};
 
-	AdalineTrainer trainer = AdalineTrainer(0.25, 5e-4, 10000000);
+	AdalineTrainer trainer = AdalineTrainer(0.25, 5e-4, 1000);
 
 	trainNN_Supervised(net, trainer, TRAINING_SETS, trainingIn, INPUTS, trainingOut, OUTPUTS);
 
 	DELETE_TRAINING_DATA(trainingIn);
 	DELETE_TRAINING_DATA(trainingOut);
+}
+
+//https://stackoverflow.com/a/40260471
+double erfinv(double x) {
+	double tt1, tt2, lnx, sgn;
+	sgn = 1 + -2 * signbit(x);
+
+	x = (1 - x) * (1 + x);        // x = 1 - x*x;
+	lnx = log(x);
+
+	tt1 = 2 / (M_PI * 0.15449436008930206298828125) + 0.5 * lnx;
+	tt2 = 1 / (0.15449436008930206298828125) * lnx;
+
+	return(sgn * sqrt(-tt1 + sqrt(tt1 * tt1 - tt2)));
+}
+
+double probit(double x) {
+	return M_SQRT2 * erfinv(2 * x - 1);
+}
+
+double gausspdf(double x, double variance) {
+	static const double inv_sqrt_2pi = 0.3989422804014327;
+
+	double v = x / variance;
+	return inv_sqrt_2pi / variance * exp(-0.5f * v * v);
 }
 
 // Training a multi-layer perceptron to solve a regression problem.
@@ -194,9 +222,34 @@ void nnAdaline() {
 void nnBackpropagation() {
 	auto net = NeuralNetwork::MakeNetwork({
 		new FFNeuronLayer<ScalarFunc::Linear>(3, "in"),
-		new FFNeuronLayer<ScalarFunc::Linear>(3, "hidden"),
-		new FFNeuronLayer<ScalarFunc::Linear>(2, "out")
+		new FFNeuronLayer<ScalarFunc::LeakyReLU>(3, "hidden"),
+		new FFNeuronLayer<ScalarFunc::LeakyReLU>(2, "out")
 	});
+
+	for (int l = 0; l < net.depth(); l++) {
+		NeuralNetwork::Layer& layer = net.getLayer(l);
+		vector<double>& weightsIn = layer.weightsIn();
+
+		int neuronCount = layer.size();
+		int inputCount = layer.inputsPerNeuron();
+
+		double stdev = sqrt(2.0 / (inputCount * neuronCount));
+		double variance = stdev * stdev;
+
+		// -3.5 stdev - ~99.95% of points above
+		const double xMin = 0.0005;
+		// 3.5 stdev - ~99.95% of points below
+		const double xMax = 0.9995;
+
+		for (int n = 0; n < neuronCount; n++) {
+			for (int i = 0; i < inputCount; i++) {
+				int w = n * inputCount + i;
+
+				double x = std::min(std::max((double)rand() / RAND_MAX, xMin), xMax);
+				weightsIn[w] = probit(x) * stdev;
+			}
+		}
+	}
 
 	constexpr int TRAINING_SETS = 10;
 	constexpr int INPUTS = 3;
@@ -226,7 +279,7 @@ void nnBackpropagation() {
 		OUTPUT{ 0.0, 1.0 },
 		OUTPUT{ 0.0, 1.0 }
 	};
-	BackpropagationTrainer trainer = BackpropagationTrainer(0.05, 5e-2, 1000);
+	BackpropagationTrainer trainer = BackpropagationTrainer(1.0, 5e-2, 1000);
 
 	trainNN_Supervised(net, trainer, TRAINING_SETS, trainingIn, INPUTS, trainingOut, OUTPUTS);
 
@@ -419,6 +472,7 @@ int main()
 		getline(cin, val);
 
 		srand(seed);
+		rand();
 
 		if (val.size() > 0) {
 			char ch = val.c_str()[0];
