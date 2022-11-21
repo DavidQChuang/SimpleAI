@@ -169,7 +169,7 @@ namespace nn {
 
 				for (it = nnLayers.begin() + 1, it2 = other.nnLayers.begin() + 1; it < nnLayers.end() - 1; it++) {
 					Layer& layer1 = **it;
-					Layer& layer2 = **it;
+					Layer& layer2 = **it2;
 
 					printf("\n### Hidden Layer - %s", layer1.name().c_str());
 					layer1.display();
