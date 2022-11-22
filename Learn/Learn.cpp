@@ -183,7 +183,7 @@ void nnAdaline() {
 		OUTPUT { 0.10 },
 	};
 
-	AdalineTrainer trainer = AdalineTrainer(0.25, 5e-4, 1000);
+	AdalineTrainer trainer = AdalineTrainer(0.25, 5e-4, 1000, 0.9);
 
 	trainNN_Supervised(net, trainer, TRAINING_SETS, trainingIn, INPUTS, trainingOut, OUTPUTS);
 
@@ -226,6 +226,7 @@ void nnBackpropagation() {
 		new FFNeuronLayer<ScalarFunc::LeakyReLU>(2, "out")
 	});
 
+	
 	for (int l = 0; l < net.depth(); l++) {
 		NeuralNetwork::Layer& layer = net.getLayer(l);
 		vector<double>& weightsIn = layer.weightsIn();
@@ -279,7 +280,7 @@ void nnBackpropagation() {
 		OUTPUT{ 0.0, 1.0 },
 		OUTPUT{ 0.0, 1.0 }
 	};
-	BackpropagationTrainer trainer = BackpropagationTrainer(1.0, 5e-2, 1000);
+	BackpropagationTrainer trainer = BackpropagationTrainer(0.25, 5e-2, 2500, 0.3);
 
 	trainNN_Supervised(net, trainer, TRAINING_SETS, trainingIn, INPUTS, trainingOut, OUTPUTS);
 

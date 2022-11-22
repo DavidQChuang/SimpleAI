@@ -9,7 +9,7 @@ namespace nn {
 		// exit conditions
 		int				epochTarget;
 		double			errorTarget;
-		double			mseMax = 1e6;
+		double			mseMax = 1;
 
 		// learning rate
 		double			learningRate;
@@ -110,6 +110,8 @@ namespace nn {
 			vector<MseHist> mseHistory;
 			mseHistory.reserve(MSE_TRAILC * 2 + MSE_MAXC + 1);
 			int mseRecordMod = (epochTarget - MSE_TRAILC) / MSE_MAXC;
+			MseHist maxMse = MseHist(0, 0);
+			MseHist minMse = MseHist(0, 0);
 #endif
 
 			double mse = 0;
@@ -126,6 +128,12 @@ namespace nn {
 					double setMse = cost(outLength, outPtr, expOutputSet[i]);
 					setError(i) = setMse;
 				}
+
+#ifndef FAST_MODE
+				mse = setError.sum() / trainingSets;
+				maxMse = MseHist(-1, mse);
+				minMse = MseHist(-1, mse);
+#endif
 
 				initTraining(network, trainingSets,
 					inputSet, inLength, expOutputSet, outLength);
@@ -153,7 +161,11 @@ namespace nn {
 
 					mse = setError.sum() / trainingSets;
 #ifndef FAST_MODE
-					mseHistory.push_back(MseHist(e, mse));
+					MseHist mseHist = MseHist(e, mse);
+					mseHistory.push_back(mseHist);
+
+					if (MseHist::comp(mseHist, maxMse) > 0) maxMse = mseHist;
+					if (MseHist::comp(mseHist, minMse) < 0) minMse = mseHist;
 #endif
 
 					if (mse <= errorTarget) break;
@@ -181,11 +193,9 @@ namespace nn {
 
 			printf("%-10s | -", "MSE Trend");
 			if (!mseHistory.empty()) {
-				MseHist maxMse = *max_element(mseHistory.begin(), mseHistory.end(), &MseHist::comp);
-				MseHist minMse = *min_element(mseHistory.begin(), mseHistory.end(), &MseHist::comp);
 				double mseRange = maxMse.mse - minMse.mse;
 
-				printf("\nMin [ %.6e ] -> Max [ %.6e ]", minMse.mse, maxMse.mse);
+				printf("\nMin [ %d:%.6e ] -> Max [ %d:%.6e ]", minMse.epoch + 1, minMse.mse, maxMse.epoch + 1, maxMse.mse);
 
 				double prevMse = 0;
 				for (int i = 0; i < mseHistory.size(); i++) {
@@ -202,10 +212,10 @@ namespace nn {
 					printf("\n%-10d | [ %.6e %s ] ", entry.epoch + 1, entry.mse, compare);
 
 					int starCount = (int)(24 * (entry.mse - minMse.mse) / mseRange);
-					if (starCount == 0 || starCount > 24) {
+					/*if (starCount == 0 || starCount > 24) {
 						mseRange = entry.mse - minMse.mse;
 						starCount = (int)(24 * (entry.mse - minMse.mse) / mseRange);
-					}
+					}*/
 					for (int n = 0; n < starCount; n++) {
 						printf("*");
 					}

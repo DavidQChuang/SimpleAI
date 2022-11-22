@@ -5,6 +5,9 @@
 namespace nn {
 	class AdalineTrainer : public SupervisedTrainer {
 	private:
+		double momentum;
+		vector<double> prevWeightDeltas;
+
 		INeuronLayer* layer;
 		vector<double>* weightsInPtr;
 		int neurons;
@@ -30,6 +33,12 @@ namespace nn {
 			neurons = layer->size();
 
 			inputOffset = network.depth() == 1 ? 0 : network.expectedInputs();
+
+			for (int n = 0; n < neurons; n++) {
+				for (int i = 0; i < layer->inputsPerNeuron(); i++) {
+					prevWeightDeltas.push_back(0);
+				}
+			}
 		}
 
 		void trainOnSet(NeuralNetwork& network,
@@ -59,12 +68,20 @@ namespace nn {
 			}
 
 			in = 0;
+			int wd = 0;
 			for (int n = 0; n < neurons; n++) {
 				for (int i = 0; i < inputCount; i++) {
 					int w = n * inputCount + i;
 
-					weightsIn[w] += learningRate * error * inPtr[in] * layer->derivActivationFunc(sum);
+					double weightDelta = learningRate * error * inPtr[in] * layer->derivActivationFunc(sum)
+						+ momentum * prevWeightDeltas[wd];
+
+					weightsIn[w] += weightDelta;
+
+					prevWeightDeltas[wd] = weightDelta;
+
 					in++;
+					wd++;
 				}
 				if (!layer->independentInputs()) {
 					in -= inputCount;
@@ -73,7 +90,7 @@ namespace nn {
 		}
 
 	public:
-		AdalineTrainer(double learnRate = 0.1, double error = 0.002, int epochs = 1000)
-			: SupervisedTrainer(learnRate, error, epochs) { }
+		AdalineTrainer(double learnRate = 0.1, double error = 0.002, int epochs = 1000, double momentum = 0.5)
+			: SupervisedTrainer(learnRate, error, epochs), momentum(momentum) { }
 	};
 }

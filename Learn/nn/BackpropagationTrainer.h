@@ -4,11 +4,24 @@
 
 namespace nn {
 	class BackpropagationTrainer : public SupervisedTrainer {
+	private:
+		double momentum;
+		vector<double> prevWeightDeltas;
+
 	protected:
-		/*void initTrainingSet(NeuralNetwork& network,
-			double* inputs, size_t inLength, double* expOutputs, size_t outLength) override {
-			SupervisedTrainer::initTrainingSet(network, inputs, inLength, expOutputs, outLength);
-		}*/
+		void initTraining(NeuralNetwork& network,
+			int trainingSets,
+			double** inputSet, size_t inLength,
+			double** expOutputSet, size_t outLength) override {
+			for (int l = 0; l < network.depth(); l++) {
+				NeuralNetwork::Layer& layer = network.getLayer(l);
+				for (int n = 0; n < layer.size(); n++) {
+					for (int i = 0; i < layer.inputsPerNeuron(); i++) {
+						prevWeightDeltas.push_back(0);
+					}
+				}
+			}
+		}
 
 		void trainOnSet(NeuralNetwork& network, double* inputs, double* expOutputs, double* buffer, double* outPtr) {
 			vector<double> layerDelta;
@@ -33,6 +46,7 @@ namespace nn {
 			double* inPtr = outPtr;
 
 			// Update layer weights from back to front.
+			int wd = 0;
 			for (int l = network.depth() - 1; l >= 0; l--) {
 				NeuralNetwork::Layer& layer = network.getLayer(l);
 				vector<double>& weightsIn = layer.weightsIn();
@@ -75,13 +89,19 @@ namespace nn {
 					for (int i = 0; i < inputCount; i++) {
 						int w = n * inputCount + i;
 
+						double weightDelta = learningRate * delta * inPtr[in] + momentum * prevWeightDeltas[wd];
+
 						// Each input corresponds to a neuron in the preceding layer.
 						// The next layer's delta for that neuron [i] is the sum of this
 						// layer's neurons' deltas dj * the weight wij connecting the two
 						// neurons for each neuron [j] in this layer.
 						layerDelta[i] += delta * weightsIn[w];
-						weightsIn[w] += learningRate * delta * inPtr[in];
+						weightsIn[w] += weightDelta;
+
+						prevWeightDeltas[wd] = weightDelta;
+
 						in++;
+						wd++;
 					}
 
 					// If the inputs for this layer's neurons are independent,
@@ -94,7 +114,7 @@ namespace nn {
 		}
 
 	public:
-		BackpropagationTrainer(double learnRate = 0.1, double error = 0.002, int epochs = 1000)
-			: SupervisedTrainer(learnRate, error, epochs) { }
+		BackpropagationTrainer(double learnRate = 0.1, double error = 0.002, int epochs = 1000, double momentum = 0.5)
+			: SupervisedTrainer(learnRate, error, epochs), momentum(momentum){ }
 	};
 }
