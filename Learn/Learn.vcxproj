@@ -148,6 +148,10 @@
     <ClInclude Include="nn\SupervisedTrainer.h" />
     <ClInclude Include="nn\UnsupervisedTrainer.h" />
     <ClInclude Include="nn\WTATrainer.h" />
+    <ClInclude Include="statmath.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cpp.hint" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

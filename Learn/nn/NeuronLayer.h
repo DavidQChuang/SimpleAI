@@ -5,10 +5,19 @@
 #include <string>
 #include <stdexcept>
 #include <functional>
+#include "../statmath.h"
 
 namespace nn {
 	enum class ScalarFunc {
 		Step, Linear, Siglog, Hypertan, ReLU, LeakyReLU, GeLU,
+	};
+
+	enum class VectorFunc {
+		Softmax, Argmax
+	};
+
+	enum class WeightInit {
+		Constant, Normal, Uniform
 	};
 
 	class INeuronLayer {
@@ -18,15 +27,12 @@ namespace nn {
 		int		mNeuronInputs = 0; // input per neuron
 		int		mNeuronOutputs = 0; // output per neuron
 		bool	mUseInputs = true;
-		bool	mUseOutputs = true;
 		bool	mIndependentInputs = false;
 		int		neuronCount = 0;
 
 		std::vector<double> inputWeights;
-		std::vector<double> outputWeights;
 
 		bool overrideUseInputs = false;
-		bool overrideUseOutputs = false;
 		bool overrideIndependentInputs = false;
 
 		std::string layerName = "";
@@ -42,110 +48,36 @@ namespace nn {
 		INeuronLayer(int count, bool independentInputs, bool useInputs, std::string name = "Layer")
 			: INeuronLayer(count, name) {
 			overrideUseInputs = true;
-			overrideUseOutputs = true;
 			overrideIndependentInputs = true;
 
 			mUseInputs = useInputs;
-			mUseOutputs = false;
 			mIndependentInputs = independentInputs;
 		}
 
 		virtual INeuronLayer* clone() = 0;
 
-		void init(int inputsPerNeuron, int outputsPerNeuron, bool independentInputs, bool useInputs, bool useOutputs) {
-			if (inputsPerNeuron < 0) throw std::invalid_argument("Layer must have at least 0 inputs per neuron.");
-			if (outputsPerNeuron < 0) throw std::invalid_argument("Layer must have at least 0 outputs per neuron.");
+		void init(int inputsPerNeuron, int outputsPerNeuron, bool independentInputs, bool useInputs);
 
-			mNeuronInputs = inputsPerNeuron;
-			mNeuronOutputs = outputsPerNeuron;
+		template<WeightInit initType, typename... Args>
+		void initWeights(Args... args) = delete;
 
-			if (!overrideUseInputs) {
-				mUseInputs = useInputs;
-			}
-			if (!overrideUseOutputs) {
-				mUseOutputs = useOutputs;
-			}
-			if (!overrideIndependentInputs) {
-				mIndependentInputs = independentInputs;
-			}
+		template<> void initWeights<WeightInit::Constant, double>(double weight);
+		template<> void initWeights<WeightInit::Normal, double, double>(double stdev, double mean);
+		template<> void initWeights<WeightInit::Uniform, double, double>(double min, double max);
 
-			initRandomWeights();
-		}
+		virtual void execute(double* input, int inputLength, double* output, int outputLength);
 
-		void initRandomWeights() {
-			if (mUseInputs) {
-				int inputs = mNeuronInputs * neuronCount;
-				inputWeights = std::vector<double>(inputs);
-				for (int i = 0; i < inputs; i++) {
-					inputWeights[i] = (double)rand() / RAND_MAX;
-				}
-			}
+		virtual void display();
 
-			if (mUseOutputs) {
-				int outputs = mNeuronOutputs * neuronCount;
-				outputWeights = std::vector<double>(outputs);
-				for (int i = 0; i < outputs; i++) {
-					outputWeights[i] = (double)rand() / RAND_MAX;
-				}
-			}
-		}
+		virtual double activationFunc(double v) = 0;
+		virtual double derivActivationFunc(double v) = 0;
+		virtual void vectorActivationFunc(double* output, int outputLength) {}
 
-		void initWeights(double value) {
-			if (mUseInputs) {
-				int inputs = mNeuronInputs * neuronCount;
-				inputWeights = std::vector<double>(inputs);
-				for (int i = 0; i < inputs; i++) {
-					inputWeights[i] = value;
-				}
-			}
-
-			if (mUseOutputs) {
-				int outputs = mNeuronOutputs * neuronCount;
-				outputWeights = std::vector<double>(outputs);
-				for (int i = 0; i < outputs; i++) {
-					outputWeights[i] = value;
-				}
-			}
-		}
-
-		void initWeights(std::function<double()> f) {
-			if (mUseInputs) {
-				int inputs = mNeuronInputs * neuronCount;
-				inputWeights = std::vector<double>(inputs);
-				for (int i = 0; i < inputs; i++) {
-					inputWeights[i] = f();
-				}
-			}
-
-			if (mUseOutputs) {
-				int outputs = mNeuronOutputs * neuronCount;
-				outputWeights = std::vector<double>(outputs);
-				for (int i = 0; i < outputs; i++) {
-					outputWeights[i] = f();
-				}
-			}
-		}
-
-		void initWeights(std::function<double()> fin, std::function<double()> fout) {
-			if (mUseInputs) {
-				int inputs = mNeuronInputs * neuronCount;
-				inputWeights = std::vector<double>(inputs);
-				for (int i = 0; i < inputs; i++) {
-					inputWeights[i] = fin();
-				}
-			}
-
-			if (mUseOutputs) {
-				int outputs = mNeuronOutputs * neuronCount;
-				outputWeights = std::vector<double>(outputs);
-				for (int i = 0; i < outputs; i++) {
-					outputWeights[i] = fout();
-				}
-			}
-		}
-
+	public:
+		////////////////////////
+		// GETTERS
 		inline int expectedInputs() { // if inputs are independent, they don't overlap
-			return mNeuronInputs * (neuronCount * mIndependentInputs + 1 - mIndependentInputs);
+			return mNeuronInputs * (mIndependentInputs ? neuronCount : 1);
 		}
 		inline int expectedOutputs() { return mNeuronOutputs * neuronCount; }
 
@@ -157,113 +89,20 @@ namespace nn {
 
 		inline bool independentInputs() { return mIndependentInputs; }
 
-		inline std::vector<double>& weightsIn() {
-			return inputWeights;
-		}
-
-		inline std::vector<double>& weightsOut() {
-			return outputWeights;
-		}
-
-		void execute(double* input, int inputLength, double* output, int outputLength) {
-			if (mNeuronInputs == 0) throw std::invalid_argument("Uninitialized layer.");
-
-			if (input == NULL) throw std::invalid_argument("Null input pointer.");
-			if (output == NULL) throw std::invalid_argument("Null output pointer.");
-
-			if (inputLength != expectedInputs()) throw std::invalid_argument("Input buffer length is invalid.");
-			if (outputLength != expectedOutputs()) throw std::invalid_argument("Output buffer length is invalid.");
-
-			int in = 0;
-			int out = 0;
-			for (int n = 0; n < neuronCount; n++) {
-				double sum = 0;
-
-				// sum weights * input
-				if (mUseInputs) {
-					for (int i = 0; i < mNeuronInputs; i++) {
-						sum += input[in] * inputWeights[n * mNeuronInputs + i];
-						in++;
-					}
-				}
-				else {
-					for (int i = 0; i < mNeuronInputs; i++) {
-						sum += input[in];
-						in++;
-					}
-				}
-
-				if (!mIndependentInputs) { // if inputs are non-independent, all neurons ue the same inputs.
-					in = 0;
-				}
-
-				// copy outputs to buffer
-				if (mUseOutputs) {
-					for (int i = 0; i < mNeuronOutputs; i++) {
-						output[out] = activationFunc(sum * outputWeights[out]);
-						out++;
-					}
-				}
-				else {
-					for (int i = 0; i < mNeuronOutputs; i++) {
-						output[out] = activationFunc(sum);
-						out++;
-					}
-				}
-			}
-		}
-
-		void display() {
-			if (mNeuronInputs == 0) {
-				printf("Uninitialized layer: %dx%d inputs, %dx%d outputs",
-					mNeuronInputs, neuronCount, mNeuronOutputs, neuronCount);
-				return;
-			}
-
-			printf("\nLayer [%dx(%d,%d)]", neuronCount, mNeuronInputs, mNeuronOutputs);
-			printf("\n%-7s | -", "Neurons");
-
-			for (int n = 0; n < neuronCount; n++) {
-				if (mUseInputs) {
-					printf("\n%-7d | IN : [ ", n);
-					for (int i = 0; i < mNeuronInputs; i++) {
-						printf("%11.8f", inputWeights[n * mNeuronInputs + i]);
-
-						if (i + 1 != mNeuronInputs) {
-							printf(", ");
-						}
-						else break;
-					}
-					printf(" ]");
-				}
-
-				if (mUseOutputs) {
-					printf("\n%-7d | OUT: [ ", n);
-					for (int i = 0; i < mNeuronOutputs; i++) {
-						printf("%11.8f", outputWeights[n * mNeuronOutputs + i]);
-
-						if (i + 1 != mNeuronOutputs) {
-							printf(", ");
-						}
-						else break;
-					}
-					printf(" ]");
-				}
-			}
-			printf("\n");
-		}
-
-		virtual double activationFunc(double v) = 0;
-		virtual double derivActivationFunc(double v) = 0;
+		inline std::vector<double>& weightsIn() { return inputWeights; }
 	};
+
+	///////////////////////////////////////////
+	/// WEIGHTED FEEDFORWARD LAYERS
 
 	template<ScalarFunc Func>
 	class FFNeuronLayer : public INeuronLayer {
+	public:
 		double activationFunc(double v) override = 0;
 		double derivActivationFunc(double v) override = 0;
 	};
 
-#define DEFINE_LAYER(className) \
+#define DEFINE_VLAYER(className) \
 	template<>\
 	class className : public INeuronLayer {\
 	public:\
@@ -271,18 +110,55 @@ namespace nn {
 			: INeuronLayer(count, name) {}\
 		className(int count, bool independentInputs, bool useInputs, std::string name = "Layer")\
 			: INeuronLayer(count, independentInputs, useInputs, name) {}\
-\
-		double activationFunc(double v) override;\
-		double derivActivationFunc(double v) override;\
-\
+	\
 		INeuronLayer* clone() override { return new className(*this); }\
-	}
+	\
+		double activationFunc(double v) override;\
+		double derivActivationFunc(double v) override;
 
-	DEFINE_LAYER(FFNeuronLayer<ScalarFunc::Step>);
-	DEFINE_LAYER(FFNeuronLayer<ScalarFunc::Linear>);
-	DEFINE_LAYER(FFNeuronLayer<ScalarFunc::Siglog>);
-	DEFINE_LAYER(FFNeuronLayer<ScalarFunc::Hypertan>);
-	DEFINE_LAYER(FFNeuronLayer<ScalarFunc::ReLU>);
-	DEFINE_LAYER(FFNeuronLayer<ScalarFunc::LeakyReLU>);
-	DEFINE_LAYER(FFNeuronLayer<ScalarFunc::GeLU>);
+	DEFINE_VLAYER(FFNeuronLayer<ScalarFunc::Step>)};
+	DEFINE_VLAYER(FFNeuronLayer<ScalarFunc::Linear>)};
+	DEFINE_VLAYER(FFNeuronLayer<ScalarFunc::Siglog>)};
+	DEFINE_VLAYER(FFNeuronLayer<ScalarFunc::Hypertan>)};
+	DEFINE_VLAYER(FFNeuronLayer<ScalarFunc::ReLU>)};
+	DEFINE_VLAYER(FFNeuronLayer<ScalarFunc::LeakyReLU>)};
+	DEFINE_VLAYER(FFNeuronLayer<ScalarFunc::GeLU>)};
+
+	///////////////////////////////////////////
+	/// FEEDFORWARD FILTER LAYERS
+
+	template<VectorFunc Func>
+	class FFVNeuronLayer : public INeuronLayer {
+	public:
+		double activationFunc(double v) override { return v; }
+		double derivActivationFunc(double v) override { return 1; }
+
+		void vectorActivationFunc(double* output, int outputLength) override = 0;
+	};
+
+#define DEFINE_SLAYER(className) \
+	template<>\
+	class className : public INeuronLayer {\
+	public:\
+		className(int count, std::string name = "Layer")\
+			: INeuronLayer(count, false, false, name) {}\
+	\
+		INeuronLayer* clone() override { return new className(*this); }\
+	\
+		void vectorActivationFunc(double* output, int outputLength) override;\
+
+	DEFINE_SLAYER(FFVNeuronLayer<VectorFunc::Softmax>)
+	private:
+		std::vector<double> weightedSums;
+		double totalSum = 0;
+
+	public:
+		double activationFunc(double v) override;
+		double derivActivationFunc(double v) override;
+	};
+
+	DEFINE_SLAYER(FFVNeuronLayer<VectorFunc::Argmax>)
+		double activationFunc(double v) override { return v; }
+		double derivActivationFunc(double v) override { return 1; }
+	};
 }

@@ -1,0 +1,4 @@
+// Hint files help the Visual Studio IDE interpret Visual C++ identifiers
+// such as names of functions and macros.
+// For more information see https://go.microsoft.com/fwlink/?linkid=865984
+#define DEFINE_LAYER(className) template<> class className : public INeuronLayer { public: className(int count, std::string name = "Layer") : INeuronLayer(count, name) {} className(int count, bool independentInputs, bool useInputs, std::string name = "Layer") : INeuronLayer(count, independentInputs, useInputs, name) {} INeuronLayer* clone() override { return new className(*this); }

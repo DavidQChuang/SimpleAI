@@ -68,5 +68,11 @@
     <ClInclude Include="nn\WTATrainer.h">
       <Filter>Header Files\nn</Filter>
     </ClInclude>
+    <ClInclude Include="statmath.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cpp.hint" />
   </ItemGroup>
 </Project>

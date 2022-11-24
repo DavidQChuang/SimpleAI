@@ -20,8 +20,6 @@ namespace nn {
 
 		int inputs = 0;
 		int outputs = 0;
-		
-		NeuralNetwork() { }
 
 	public:
 		static NeuralNetwork MakeNetwork(initializer_list<Layer*> layerArgs) {
@@ -63,10 +61,8 @@ namespace nn {
 				Layer& layer = *nnLayers[i];
 
 				bool indepInputs = i == first;
-				bool useInputs = true; //(i != lastL);
-				bool useOutputs = false; //(i != firstL);
 
-				layer.init(inputsPerNeuron, 1, indepInputs, useInputs, useOutputs);
+				layer.init(inputsPerNeuron, 1, indepInputs, true);
 
 				if (inputsPerNeuron * (layer.size() * indepInputs + 1 - indepInputs) != layer.expectedInputs())
 					throw out_of_range("Layers have incompatible in/out sizes.");
