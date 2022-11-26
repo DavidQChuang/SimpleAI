@@ -73,7 +73,7 @@ namespace nn {
 				for (int i = 0; i < inputCount; i++) {
 					int w = n * inputCount + i;
 
-					double weightDelta = learningRate * error * inPtr[in] * layer->derivActivationFunc(sum)
+					double weightDelta = learningRate * error * inPtr[in] * layer->derivActivationFunc(sum, n)
 						+ momentum * prevWeightDeltas[wd];
 
 					weightsIn[w] += weightDelta;

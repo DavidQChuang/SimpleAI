@@ -30,17 +30,24 @@ namespace nn {
 			// Calculate target vs. nn output errors and store them in the layerDelta buffer.
 			int out = 0;
 			NeuralNetwork::Layer& outputLayer = network.getLayer(network.depth() - 1);
+
+			bool isSoftmax = dynamic_cast<FFVNeuronLayer<VectorFunc::Softmax>*>(&outputLayer);
 			for (int n = 0; n < outputLayer.size(); n++) {
-				double sumNN = 0;
-				double sumExp = 0;
+				double y = 0;
+				double t = 0;
 
 				for (int o = 0; o < outputLayer.outputsPerNeuron(); o++) {
-					sumNN += outPtr[out];
-					sumExp += expOutputs[out];
+					y += outPtr[out];
+					t += expOutputs[out];
 					out++;
 				}
 
-				layerDelta.push_back(sumExp - sumNN);
+				if (isSoftmax) {
+					layerDelta.push_back(y < 0.005 ? 0 : t / y);
+				}
+				else {
+					layerDelta.push_back(y - t);
+				}
 			}
 
 			double* inPtr = outPtr;
@@ -83,20 +90,21 @@ namespace nn {
 					// The delta for this neuron will have been calculated previously -
 					// error for output layer, sum of deltas for hidden/input layers,
 					// and is then multiplied by f'(h), where h is the weighted sum of inputs.
-					double delta = oldLayerDelta[n] * layer.derivActivationFunc(weightedSum);
+					double delta = oldLayerDelta[n] * layer.derivActivationFunc(weightedSum, n);
 
 					// Adjust the weights for each neuron in sequence.
 					for (int i = 0; i < inputCount; i++) {
 						int w = n * inputCount + i;
 
-						double weightDelta = learningRate * delta * inPtr[in] + momentum * prevWeightDeltas[wd];
+						double weightDelta = -learningRate * delta * inPtr[in] + momentum * prevWeightDeltas[wd];
 
 						// Each input corresponds to a neuron in the preceding layer.
 						// The next layer's delta for that neuron [i] is the sum of this
 						// layer's neurons' deltas dj * the weight wij connecting the two
 						// neurons for each neuron [j] in this layer.
 						layerDelta[i] += delta * weightsIn[w];
-						weightsIn[w] += weightDelta;
+						if(layer.useInputs())
+							weightsIn[w] += weightDelta;
 
 						prevWeightDeltas[wd] = weightDelta;
 

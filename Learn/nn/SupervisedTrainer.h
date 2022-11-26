@@ -34,10 +34,6 @@ namespace nn {
 			double mse;
 
 			MseHist(int ep, double err) : epoch(ep), mse(err) {}
-
-			static bool comp(const MseHist& h1, const MseHist& h2) {
-				return h1.mse < h2.mse;
-			}
 		};
 
 	protected:
@@ -164,8 +160,8 @@ namespace nn {
 					MseHist mseHist = MseHist(e, mse);
 					mseHistory.push_back(mseHist);
 
-					if (MseHist::comp(mseHist, maxMse) > 0) maxMse = mseHist;
-					if (MseHist::comp(mseHist, minMse) < 0) minMse = mseHist;
+					if (mseHist.mse > maxMse.mse) maxMse = mseHist;
+					if (mseHist.mse < minMse.mse) minMse = mseHist;
 #endif
 
 					if (mse <= errorTarget) break;
@@ -212,10 +208,10 @@ namespace nn {
 					printf("\n%-10d | [ %.6e %s ] ", entry.epoch + 1, entry.mse, compare);
 
 					int starCount = (int)(24 * (entry.mse - minMse.mse) / mseRange);
-					/*if (starCount == 0 || starCount > 24) {
+					if ((starCount == 0 || starCount > 24) && entry.mse != minMse.mse) {
 						mseRange = entry.mse - minMse.mse;
 						starCount = (int)(24 * (entry.mse - minMse.mse) / mseRange);
-					}*/
+					}
 					for (int n = 0; n < starCount; n++) {
 						printf("*");
 					}

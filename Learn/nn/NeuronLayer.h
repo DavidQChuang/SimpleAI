@@ -62,15 +62,15 @@ namespace nn {
 		void initWeights(Args... args) = delete;
 
 		template<> void initWeights<WeightInit::Constant, double>(double weight);
-		template<> void initWeights<WeightInit::Normal, double, double>(double stdev, double mean);
-		template<> void initWeights<WeightInit::Uniform, double, double>(double min, double max);
+		template<> void initWeights<WeightInit::Normal, double, double, int>(double stdev, double mean, int seed);
+		template<> void initWeights<WeightInit::Uniform, double, double, int>(double min, double max, int seed);
 
 		virtual void execute(double* input, int inputLength, double* output, int outputLength);
 
 		virtual void display();
 
-		virtual double activationFunc(double v) = 0;
-		virtual double derivActivationFunc(double v) = 0;
+		virtual double activationFunc(double v, int n) = 0;
+		virtual double derivActivationFunc(double v, int n) = 0;
 		virtual void vectorActivationFunc(double* output, int outputLength) {}
 
 	public:
@@ -87,9 +87,12 @@ namespace nn {
 		inline int size() { return neuronCount; }
 		inline std::string name() { return layerName; }
 
+		inline bool useInputs() { return mUseInputs; }
 		inline bool independentInputs() { return mIndependentInputs; }
 
-		inline std::vector<double>& weightsIn() { return inputWeights; }
+		inline std::vector<double>& weightsIn() {
+			return inputWeights;
+		}
 	};
 
 	///////////////////////////////////////////
@@ -98,8 +101,8 @@ namespace nn {
 	template<ScalarFunc Func>
 	class FFNeuronLayer : public INeuronLayer {
 	public:
-		double activationFunc(double v) override = 0;
-		double derivActivationFunc(double v) override = 0;
+		double activationFunc(double v, int n) override = 0;
+		double derivActivationFunc(double v, int n) override = 0;
 	};
 
 #define DEFINE_VLAYER(className) \
@@ -113,8 +116,8 @@ namespace nn {
 	\
 		INeuronLayer* clone() override { return new className(*this); }\
 	\
-		double activationFunc(double v) override;\
-		double derivActivationFunc(double v) override;
+		double activationFunc(double v, int n) override;\
+		double derivActivationFunc(double v, int n) override;
 
 	DEFINE_VLAYER(FFNeuronLayer<ScalarFunc::Step>)};
 	DEFINE_VLAYER(FFNeuronLayer<ScalarFunc::Linear>)};
@@ -130,8 +133,8 @@ namespace nn {
 	template<VectorFunc Func>
 	class FFVNeuronLayer : public INeuronLayer {
 	public:
-		double activationFunc(double v) override { return v; }
-		double derivActivationFunc(double v) override { return 1; }
+		inline double activationFunc(double v) override { return v; }
+		inline double derivActivationFunc(double v) override { return 1; }
 
 		void vectorActivationFunc(double* output, int outputLength) override = 0;
 	};
@@ -149,16 +152,16 @@ namespace nn {
 
 	DEFINE_SLAYER(FFVNeuronLayer<VectorFunc::Softmax>)
 	private:
-		std::vector<double> weightedSums;
+		std::vector<double> weightedSumExps;
 		double totalSum = 0;
 
 	public:
-		double activationFunc(double v) override;
-		double derivActivationFunc(double v) override;
+		double activationFunc(double v, int n) override;
+		double derivActivationFunc(double v, int n) override;
 	};
 
 	DEFINE_SLAYER(FFVNeuronLayer<VectorFunc::Argmax>)
-		double activationFunc(double v) override { return v; }
-		double derivActivationFunc(double v) override { return 1; }
+		inline double activationFunc(double v, int n) override { return v; }
+		inline double derivActivationFunc(double v, int n) override { return 1; }
 	};
 }

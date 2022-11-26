@@ -119,7 +119,7 @@ namespace nn {
 					// The delta for this neuron will have been calculated previously -
 					// error for output layer, sum of deltas for hidden/input layers,
 					// and is then multiplied by f'(h), where h is the weighted sum of inputs.
-					double delta = oldLayerDelta[n] * layer.derivActivationFunc(weightedSum);
+					double delta = oldLayerDelta[n] * layer.derivActivationFunc(weightedSum, n);
 
 					// Adjust the weights for each neuron in sequence.
 					for (int i = 0; i < inputCount; i++) {

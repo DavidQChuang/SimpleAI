@@ -163,7 +163,7 @@ namespace nn {
 				(*other.nnLayers.front()).display();
 				printf("\n");
 
-				for (it = nnLayers.begin() + 1, it2 = other.nnLayers.begin() + 1; it < nnLayers.end() - 1; it++) {
+				for (it = nnLayers.begin() + 1, it2 = other.nnLayers.begin() + 1; it < nnLayers.end() - 1; it++, it2++) {
 					Layer& layer1 = **it;
 					Layer& layer2 = **it2;
 
