@@ -42,9 +42,9 @@ public:
 template<typename... Args>
 class NeuralNetwork {
 private:
-    typedef std::tuple<Args...> NNLayers;
+    typedef std::tuple<Args...> LayersArgs;
 
-    NNLayers nnLayers;
+    LayersArgs nnLayers;
 
     template<std::size_t... Is>
     double execute(double x, std::index_sequence<Is...>) {
@@ -60,11 +60,11 @@ private:
 
 public:
     NeuralNetwork(Args... args) {
-        nnLayers = std::tuple<Args...>(args...);
+        nnLayers = std::tuple<Args...>(args...); 
     }
 
     double execute(double x) {
-        constexpr size_t size = std::tuple_size_v<NNLayers>;
+        constexpr size_t size = std::tuple_size_v<LayersArgs>;
 
         return execute(x, std::make_index_sequence<size>{});
     }

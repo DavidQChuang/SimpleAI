@@ -76,10 +76,17 @@ namespace nn {
 	public:
 		////////////////////////
 		// GETTERS
-		inline int expectedInputs() { // if inputs are independent, they don't overlap
+		static inline int totalInputs(int neurons, int inputsPerNeuron, bool indepInputs) {
+			return inputsPerNeuron * (indepInputs ? neurons : 1);
+		}
+		static inline int totalOutputs(int neurons, int outputsPerNeuron) {
+			return outputsPerNeuron * neurons;
+		}
+
+		inline int totalInputs() { // if inputs are independent, they don't overlap
 			return mNeuronInputs * (mIndependentInputs ? neuronCount : 1);
 		}
-		inline int expectedOutputs() { return mNeuronOutputs * neuronCount; }
+		inline int totalOutputs() { return mNeuronOutputs * neuronCount; }
 
 		inline int inputsPerNeuron() { return mNeuronInputs; }
 		inline int outputsPerNeuron() { return mNeuronOutputs; }

@@ -39,8 +39,8 @@ namespace nn {
 		if (input == NULL) throw std::invalid_argument("Null input pointer.");
 		if (output == NULL) throw std::invalid_argument("Null output pointer.");
 
-		if (inputLength != expectedInputs()) throw std::invalid_argument("Input buffer length is invalid.");
-		if (outputLength != expectedOutputs()) throw std::invalid_argument("Output buffer length is invalid.");
+		if (inputLength != totalInputs()) throw std::invalid_argument("Input buffer length is invalid.");
+		if (outputLength != totalOutputs()) throw std::invalid_argument("Output buffer length is invalid.");
 
 		int in = 0;
 		int out = 0;

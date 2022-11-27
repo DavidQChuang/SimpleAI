@@ -3,13 +3,14 @@
 #include "SupervisedTrainer.h"
 
 namespace nn {
-	class BackpropagationTrainer : public SupervisedTrainer {
+	template<typename... LayerArgs>
+	class BackpropagationTrainer : public SupervisedTrainer<LayerArgs...> {
 	private:
 		double momentum;
 		vector<double> prevWeightDeltas;
 
 	protected:
-		void initTraining(NeuralNetwork& network,
+		void initTraining(FFNeuralNetwork<LayerArgs...>& network,
 			int trainingSets,
 			double** inputSet, size_t inLength,
 			double** expOutputSet, size_t outLength) override {
@@ -23,7 +24,7 @@ namespace nn {
 			}
 		}
 
-		void trainOnSet(NeuralNetwork& network, double* inputs, double* expOutputs, double* buffer, double* outPtr) {
+		void trainOnSet(FFNeuralNetwork<LayerArgs...>& network, double* inputs, double* expOutputs, double* buffer, double* outPtr) override {
 			vector<double> layerDelta;
 			vector<double> oldLayerDelta;
 
@@ -58,7 +59,7 @@ namespace nn {
 				NeuralNetwork::Layer& layer = network.getLayer(l);
 				vector<double>& weightsIn = layer.weightsIn();
 
-				inPtr -= layer.expectedInputs();
+				inPtr -= layer.totalInputs();
 
 				int inputCount = layer.inputsPerNeuron();
 				int in = 0;
@@ -96,7 +97,7 @@ namespace nn {
 					for (int i = 0; i < inputCount; i++) {
 						int w = n * inputCount + i;
 
-						double weightDelta = -learningRate * delta * inPtr[in] + momentum * prevWeightDeltas[wd];
+						double weightDelta = -this->learningRate * delta * inPtr[in] + momentum * prevWeightDeltas[wd];
 
 						// Each input corresponds to a neuron in the preceding layer.
 						// The next layer's delta for that neuron [i] is the sum of this
@@ -123,6 +124,6 @@ namespace nn {
 
 	public:
 		BackpropagationTrainer(double learnRate = 0.1, double error = 0.002, int epochs = 1000, double momentum = 0.5)
-			: SupervisedTrainer(learnRate, error, epochs), momentum(momentum){ }
+			: SupervisedTrainer<LayerArgs...>(learnRate, error, epochs), momentum(momentum){ }
 	};
 }

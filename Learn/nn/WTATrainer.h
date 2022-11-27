@@ -3,24 +3,25 @@
 #include "UnsupervisedTrainer.h"
 
 namespace nn {
-	class WTATrainer : public UnsupervisedTrainer {
+	template<typename... LayerArgs>
+	class WTATrainer : public UnsupervisedTrainer<LayerArgs...> {
 	private:
 
 	protected:
-		void initTrainingSet(NeuralNetwork& network, double* inputs, size_t inLength) override {
-			UnsupervisedTrainer::initTrainingSet(network, inputs, inLength);
+		void initTrainingSet(FFNeuralNetwork<LayerArgs...>& network, double* inputs, size_t inLength) override {
+			UnsupervisedTrainer<LayerArgs...>::initTrainingSet(network, inputs, inLength);
 
 			if (network.depth() > 2)
 				throw invalid_argument("Winner-takes-all trainer requires 1 inout layer or 1 in + 1 out layer. ");
 		}
 
-		void trainOnEpoch(NeuralNetwork& network, double* inputs, double* buffer, double* outPtr) {
+		void trainOnEpoch(FFNeuralNetwork<LayerArgs...>& network, double* inputs, double* buffer, double* outPtr) override {
 			NeuralNetwork::Layer& outputLayer = network.getLayer(network.depth() - 1);
 			vector<double>& weightsIn = outputLayer.weightsIn();
 
 			int neuronCount = outputLayer.size();
 			int inputCount = outputLayer.inputsPerNeuron();
-			int outputCount = outputLayer.expectedOutputs();
+			int outputCount = outputLayer.totalOutputs();
 
 			int nWinner = 0;
 			double sumWinner = DBL_MIN;
@@ -40,12 +41,12 @@ namespace nn {
 			for (int i = 0; i < inputCount; i++) {
 				int w = nWinner * inputCount + i;
 
-				weightsIn[w] += learningRate * (inputs[i] - weightsIn[w]);
+				weightsIn[w] += this->learningRate * (inputs[i] - weightsIn[w]);
 			}
 		}
 
 	public:
 		WTATrainer(double learnRate = 0.1, double error = 0.002, int epochs = 1000)
-			: UnsupervisedTrainer(learnRate, error, epochs) { }
+			: UnsupervisedTrainer<LayerArgs...>(learnRate, error, epochs) { }
 	};
 }

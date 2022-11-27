@@ -4,8 +4,12 @@
 #include "../NeuralNetwork.h"
 
 namespace nn {
+	template<typename... LayerArgs>
 	class UnsupervisedTrainer {
 	protected:
+		static_assert((std::is_base_of<INeuronLayer, LayerArgs>::value && ...),
+			"Arguments must be derived from INeuronLayer.");
+
 		int				epochTarget;
 		double			errorTarget;
 		double			learningRate;
@@ -33,9 +37,9 @@ namespace nn {
 
 	protected:
 
-		virtual void trainOnEpoch(NeuralNetwork& network, double* inputs, double* buffer, double* outPtr) = 0;
+		virtual void trainOnEpoch(FFNeuralNetwork<LayerArgs...>& network, double* inputs, double* buffer, double* outPtr) = 0;
 
-		virtual void initTrainingSet(NeuralNetwork& network, double* inputs, size_t inLength) {
+		virtual void initTrainingSet(FFNeuralNetwork<LayerArgs...>& network, double* inputs, size_t inLength) {
 			if (network.expectedInputs() != inLength)
 				throw invalid_argument("Input of network and size of input buffer don't match.");
 		}
@@ -61,7 +65,7 @@ namespace nn {
 			epochTarget = epochs;
 		}
 
-		void train(NeuralNetwork& network, int trainingSets, double** inputSet, size_t inLength) {
+		void train(FFNeuralNetwork<LayerArgs...>& network, int trainingSets, double** inputSet, size_t inLength) {
 
 			int bufferSize = network.expectedBufferSize();
 
@@ -96,14 +100,14 @@ namespace nn {
 				inputSet, inLength, e);
 		}
 
-		void train(NeuralNetwork& network, double* inputs, size_t inLength) {
+		void train(FFNeuralNetwork<LayerArgs...>& network, double* inputs, size_t inLength) {
 			unique_ptr<double*[]> inputSet(new double*[1] { inputs });
 
 			train(network, 1, inputSet.get(), inLength);
 		}
 
 	private:
-		double* executeOnSet(NeuralNetwork& network, double* buffer,
+		double* executeOnSet(FFNeuralNetwork<LayerArgs...>& network, double* buffer,
 			double* inputs, size_t inLength) {
 
 			initTrainingSet(network, inputs, inLength);
@@ -111,7 +115,7 @@ namespace nn {
 			return network.executeToIOArray(buffer, inLength, network.expectedBufferSize());
 		}
 
-		void displayResults(NeuralNetwork& network, double* buffer,
+		void displayResults(FFNeuralNetwork<LayerArgs...>& network, double* buffer,
 			int trainingSets, double** inputSet, int inLength,
 			int e) {
 			bool failed = false;

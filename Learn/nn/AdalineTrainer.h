@@ -3,7 +3,8 @@
 #include "SupervisedTrainer.h"
 
 namespace nn {
-	class AdalineTrainer : public SupervisedTrainer {
+	template<typename... LayerArgs>
+	class AdalineTrainer : public SupervisedTrainer<LayerArgs...> {
 	private:
 		double momentum;
 		vector<double> prevWeightDeltas;
@@ -14,12 +15,12 @@ namespace nn {
 		int inputOffset;
 
 	protected:
-		void initTraining(NeuralNetwork& network,
+		void initTraining(FFNeuralNetwork<LayerArgs...>& network,
 			int trainingSets,
 			double** inputSet, size_t inLength,
 			double** expOutputSet, size_t outLength)
 		override {
-			SupervisedTrainer::initTraining(network, trainingSets,
+			SupervisedTrainer<LayerArgs...>::initTraining(network, trainingSets,
 				inputSet, inLength, expOutputSet, outLength);
 
 			if (network.depth() > 2)
@@ -41,7 +42,7 @@ namespace nn {
 			}
 		}
 
-		void trainOnSet(NeuralNetwork& network,
+		void trainOnSet(FFNeuralNetwork<LayerArgs...>& network,
 			double* inputs, double* expOutputs,
 			double* buffer, double* outPtr)
 		override {
@@ -73,7 +74,7 @@ namespace nn {
 				for (int i = 0; i < inputCount; i++) {
 					int w = n * inputCount + i;
 
-					double weightDelta = learningRate * error * inPtr[in] * layer->derivActivationFunc(sum, n)
+					double weightDelta = this->learningRate * error * inPtr[in] * layer->derivActivationFunc(sum, n)
 						+ momentum * prevWeightDeltas[wd];
 
 					weightsIn[w] += weightDelta;
@@ -91,6 +92,6 @@ namespace nn {
 
 	public:
 		AdalineTrainer(double learnRate = 0.1, double error = 0.002, int epochs = 1000, double momentum = 0.5)
-			: SupervisedTrainer(learnRate, error, epochs), momentum(momentum) { }
+			: SupervisedTrainer<LayerArgs...>(learnRate, error, epochs), momentum(momentum) { }
 	};
 }

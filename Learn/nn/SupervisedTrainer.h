@@ -4,8 +4,12 @@
 #include "../NeuralNetwork.h"
 
 namespace nn {
+	template<typename... LayerArgs>
 	class SupervisedTrainer {
 	protected:
+		static_assert((std::is_base_of<INeuronLayer, LayerArgs>::value && ...),
+			"Arguments must be derived from INeuronLayer.");
+
 		// exit conditions
 		int				epochTarget;
 		double			errorTarget;
@@ -38,27 +42,27 @@ namespace nn {
 
 	protected:
 
-		virtual void trainOnSet(NeuralNetwork& network,
+		virtual void trainOnSet(FFNeuralNetwork<LayerArgs...>& network,
 			double* inputs, double* expOutputs,
 			double* buffer, double* outPtr) {}
 
-		virtual void trainOnEpoch(NeuralNetwork& network,
+		virtual void trainOnEpoch(FFNeuralNetwork<LayerArgs...>& network,
 			int trainingSets, double* buffer,
 			double** inputSet, size_t inLength,
 			double** expOutputSet, size_t outLength) {}
 
 
-		virtual void initTraining(NeuralNetwork& network,
+		virtual void initTraining(FFNeuralNetwork<LayerArgs...>& network,
 			int trainingSets,
 			double** inputSet, size_t inLength,
 			double** expOutputSet, size_t outLength) {}
 
-		virtual void initTrainingEpoch(NeuralNetwork& network,
+		virtual void initTrainingEpoch(FFNeuralNetwork<LayerArgs...>& network,
 			int trainingSets,
 			double** inputSet, size_t inLength,
 			double** expOutputSet, size_t outLength) {}
 
-		virtual void initTrainingSet(NeuralNetwork& network,
+		virtual void initTrainingSet(FFNeuralNetwork<LayerArgs...>& network,
 			double* inputs, size_t inLength,
 			double* expOutputs, size_t outLength) {}
 
@@ -71,17 +75,13 @@ namespace nn {
 			epochTarget = epochs;
 		}
 
-		void setLearningRate(double rate) {
-			learningRate = rate;
-		}
+		double getLearningRate() { return learningRate; }
+		double getErrorTarget() { return errorTarget; }
+		int getEpochTarget() { return epochTarget; }
 
-		void setErrorTarget(double error) {
-			errorTarget = error;
-		}
-
-		void setEpochTarget(int epochs) {
-			epochTarget = epochs;
-		}
+		void setLearningRate(double rate) { learningRate = rate; }
+		void setErrorTarget(double error) { errorTarget = error; }
+		void setEpochTarget(int epochs) { epochTarget = epochs; }
 
 	private:
 		// used in logging mse history
@@ -89,7 +89,7 @@ namespace nn {
 		const int MSE_TRAILC = 5;
 
 	public:
-		void train(NeuralNetwork& network, int trainingSets,
+		void train(FFNeuralNetwork<LayerArgs...>& network, int trainingSets,
 			double** inputSet,	 size_t inLength,
 			double** expOutputSet, size_t outLength) {
 			if (network.expectedInputs() != inLength)
@@ -226,7 +226,7 @@ namespace nn {
 #endif
 		}
 
-		void train(NeuralNetwork& network,
+		void train(FFNeuralNetwork<LayerArgs...>& network,
 			double* inputs, size_t inLength, double* expOutputs, size_t outLength) {
 			unique_ptr<double* []> inputSet(new double* [1] {inputs});
 			unique_ptr<double* []> expOutputSet(new double* [1] { expOutputs });
@@ -238,7 +238,7 @@ namespace nn {
 		}
 
 	protected:
-		double* executeOnSet(NeuralNetwork& network,
+		double* executeOnSet(FFNeuralNetwork<LayerArgs...>& network,
 			double* buffer,
 			double* inputs,	  size_t inLength,
 			double* expOutputs, size_t outLength) {
@@ -248,7 +248,7 @@ namespace nn {
 			return network.executeToIOArray(buffer, inLength, network.expectedBufferSize());
 		}
 	private:
-		void displayResults(NeuralNetwork& network, double* buffer,
+		void displayResults(FFNeuralNetwork<LayerArgs...>& network, double* buffer,
 			int trainingSets,
 			double** inputSet, int inLength,
 			double** expOutputSet, int outLength,

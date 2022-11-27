@@ -126,8 +126,8 @@ TrainingData getCSVTrainingData(const char* fname, int inputs, int outputs, bool
 #define DELETE_VALIDATION_DATA(n) for(int _i = 0; _i < VALIDATION_SETS; _i++) \
 { delete[] n[_i]; } delete[] n; n = nullptr;
 
-template<class T>
-inline void trainNN_Supervised(NeuralNetwork& net, T trainer, 
+template<class T, class... LayerArgs>
+inline void trainNN_Supervised(FFNeuralNetwork<LayerArgs...>& net, T trainer, 
 	int TRAINING_SETS,
 	double** trainingIn, int INPUTS, double** trainingOut, int OUTPUTS)
 {
@@ -154,7 +154,7 @@ inline void trainNN_Supervised(NeuralNetwork& net, T trainer,
 	net.displayChange(*newNet);
 	printf("Exec time: %lldus\n", avgTime);
 #else
-	NeuralNetwork newNet = NeuralNetwork(net);
+	FFNeuralNetwork<LayerArgs...> newNet = FFNeuralNetwork<LayerArgs...>(net);
 
 	auto start = chrono::high_resolution_clock::now();
 	trainer.train(newNet, TRAINING_SETS, trainingIn, INPUTS, trainingOut, OUTPUTS);
@@ -167,14 +167,14 @@ inline void trainNN_Supervised(NeuralNetwork& net, T trainer,
 #endif
 }
 
-template<class T>
-inline void trainNN_Unsupervised(NeuralNetwork& net, T trainer,
+template<class T, class... LayerArgs>
+inline void trainNN_Unsupervised(FFNeuralNetwork<LayerArgs...>& net, T trainer,
 	int TRAINING_SETS, double** trainingIn, int INPUTS, int OUTPUTS,
 	double** validation, int VALIDATION_SETS)
 {
 	printf("### TRAINING NETWORK ###\n---------------------------\n");
 
-	NeuralNetwork newNet = NeuralNetwork(net);
+	FFNeuralNetwork<LayerArgs...> newNet = FFNeuralNetwork<LayerArgs...>(net);
 
 	auto start = chrono::high_resolution_clock::now();
 	trainer.train(newNet, TRAINING_SETS, trainingIn, INPUTS);
@@ -227,10 +227,13 @@ inline void trainNN_Unsupervised(NeuralNetwork& net, T trainer,
 // Training a single-layer perceptron to emulate an AND operation.
 // The training algorithm used simply adjusts weights in the direction of error.
 void nnPerceptron() {
-	auto net = NeuralNetwork::MakeNetwork({
-		new FFNeuronLayer<ScalarFunc::Linear>(3, "in"),
-		new FFNeuronLayer<ScalarFunc::Step>(1, false, false, "out")
-	});
+	auto layers = std::tuple{
+		FFNeuronLayer<ScalarFunc::Linear>(3, "in"),
+		FFNeuronLayer<ScalarFunc::Step>(1, false, false, "out")
+	};
+	auto net = NeuralNetwork::MakeNetwork(layers);
+	auto trainer = NeuralNetwork::MakeTrainer<PerceptronTrainer>(layers,
+		0.1, 0e1, 100);
 
 	constexpr int TRAINING_SETS = 4;
 	constexpr int INPUTS = 3;
@@ -249,8 +252,6 @@ void nnPerceptron() {
 		OUTPUT { 1.0 },
 	};
 
-	PerceptronTrainer trainer = PerceptronTrainer(0.1, 0e1, 100);
-
 	trainNN_Supervised(net, trainer, TRAINING_SETS, trainingIn, INPUTS, trainingOut, OUTPUTS);
 
 	DELETE_TRAINING_DATA(trainingIn);
@@ -263,10 +264,13 @@ void nnPerceptron() {
 // The training algorithm used adjusts weights in the direction of error times 
 // the derivative of the activation function.
 void nnAdaline() {
-	auto net = NeuralNetwork::MakeNetwork({
-		new FFNeuronLayer<ScalarFunc::Linear>(4, "in"),
-		new FFNeuronLayer<ScalarFunc::Linear>(1, false, false, "out")
-	});
+	auto layers = std::tuple{
+		FFNeuronLayer<ScalarFunc::Linear>(4, "in"),
+		FFNeuronLayer<ScalarFunc::Linear>(1, false, false, "out")
+	};
+	auto net = NeuralNetwork::MakeNetwork(layers);
+	auto trainer = NeuralNetwork::MakeTrainer<AdalineTrainer>(layers,
+		0.25, 5e-4, 1000, 0.3);
 
 	constexpr int TRAINING_SETS = 7;
 	constexpr int INPUTS = 4;
@@ -291,8 +295,6 @@ void nnAdaline() {
 		OUTPUT { 0.10 },
 	};
 
-	AdalineTrainer trainer = AdalineTrainer(0.25, 5e-4, 1000, 0.3);
-
 	trainNN_Supervised(net, trainer, TRAINING_SETS, trainingIn, INPUTS, trainingOut, OUTPUTS);
 
 	DELETE_TRAINING_DATA(trainingIn);
@@ -303,12 +305,15 @@ void nnAdaline() {
 // The inputs are ...
 // The training algorithm used adjusts weights ...
 void nnBackpropagation() {
-	auto net = NeuralNetwork::MakeNetwork({
-		new FFNeuronLayer<ScalarFunc::Linear>(2, "in"),
-		new FFNeuronLayer<ScalarFunc::LeakyReLU>(32, "hidden #1"),
-		//new FFNeuronLayer<ScalarFunc::Siglog>(3, "out")
-		new FFVNeuronLayer<VectorFunc::Softmax>(3, "out") 
-	});
+	auto layers = std::tuple {
+		FFNeuronLayer<ScalarFunc::Linear>(2, "in"),
+		FFNeuronLayer<ScalarFunc::LeakyReLU>(32, "hidden #1"),
+		//FFNeuronLayer<ScalarFunc::Siglog>(3, "out")
+		FFVNeuronLayer<VectorFunc::Softmax>(3, "out") 
+	};
+	auto net = NeuralNetwork::MakeNetwork(layers);
+	auto trainer = NeuralNetwork::MakeTrainer<BackpropagationTrainer>(layers,
+		0.05, 1e-2, 100, 0);
 
 	for (int l = 0; l < net.depth(); l++) {
 		NeuralNetwork::Layer& layer = net.getLayer(l);
@@ -323,8 +328,6 @@ void nnBackpropagation() {
 
 	TrainingData td = getCSVTrainingData("../files/spirals.csv", INPUTS, OUTPUTS, true);
 
-	BackpropagationTrainer trainer = BackpropagationTrainer(0.05, 1e-2, 100, 0);
-
 	trainNN_Supervised(net, trainer, td.TrainingSets, td.InputData, INPUTS, td.OutputData, OUTPUTS);
 
 	DELETE_CSV_TRAINING_DATA(td.InputData);
@@ -335,11 +338,14 @@ void nnBackpropagation() {
 // The inputs are ...
 // The training algorithm used adjusts weights ...
 void nnLevenbergMarquadt() {
-	auto net = NeuralNetwork::MakeNetwork({
-		new FFNeuronLayer<ScalarFunc::Linear>(3, "in"),
-		new FFNeuronLayer<ScalarFunc::Siglog>(3, "hidden"),
-		new FFNeuronLayer<ScalarFunc::Linear>(2, "out")
-	});
+	auto layers = std::tuple {
+		FFNeuronLayer<ScalarFunc::Linear>(3, "in"),
+		FFNeuronLayer<ScalarFunc::Siglog>(3, "hidden"),
+		FFNeuronLayer<ScalarFunc::Linear>(2, "out")
+	};
+	auto net = NeuralNetwork::MakeNetwork(layers);
+	auto trainer = NeuralNetwork::MakeTrainer<LevenbergMarquadtTrainer>(layers,
+		0.1, 5e-2, 200);
 
 	constexpr int TRAINING_SETS = 10;
 	constexpr int INPUTS = 3;
@@ -369,7 +375,6 @@ void nnLevenbergMarquadt() {
 		OUTPUT{ 0.0, 1.0 },
 		OUTPUT{ 0.0, 1.0 }
 	};
-	LevenbergMarquadtTrainer trainer = LevenbergMarquadtTrainer(0.1, 5e-2, 200);
 
 	trainNN_Supervised(net, trainer, TRAINING_SETS, trainingIn, INPUTS, trainingOut, OUTPUTS);
 
@@ -381,10 +386,13 @@ void nnLevenbergMarquadt() {
 // The inputs are ...
 // The training algorithm used adjusts weights ...
 void nnWTA() {
-	auto net = NeuralNetwork::MakeNetwork({
-		new FFNeuronLayer<ScalarFunc::Linear>(3, "in"),
-		new FFNeuronLayer<ScalarFunc::Linear>(2, "out")
-	});
+	auto layers = std::tuple {
+		FFNeuronLayer<ScalarFunc::Linear>(3, "in"),
+		FFNeuronLayer<ScalarFunc::Linear>(2, "out")
+	};
+	auto net = NeuralNetwork::MakeNetwork(layers);
+	auto trainer = NeuralNetwork::MakeTrainer<WTATrainer>(layers,
+		0.1, 1e-4, 100);
 
 	constexpr int TRAINING_SETS = 6;
 	constexpr int VALIDATION_SETS = 2;
@@ -403,8 +411,6 @@ void nnWTA() {
 		INPUT{ -1.0, 1.0, -1.0 },
 		INPUT{  1.0, 1.0,  1.0 }
 	};
-
-	WTATrainer trainer = WTATrainer(0.1, 1e-4, 100);
 
 	trainNN_Unsupervised(net, trainer, TRAINING_SETS, training,
 		INPUTS, OUTPUTS, validation, VALIDATION_SETS);
@@ -417,11 +423,14 @@ void nnWTA() {
 // The inputs are ...
 // The training algorithm used adjusts weights ...
 void nnKohonen() {
-	auto net = NeuralNetwork::MakeNetwork({
-		new FFNeuronLayer<ScalarFunc::Siglog>(3, "in"),
-		new FFNeuronLayer<ScalarFunc::Siglog>(3, "hidden"),
-		new FFNeuronLayer<ScalarFunc::Linear>(2, "out")
-	});
+	auto layers = std::tuple {
+		FFNeuronLayer<ScalarFunc::Linear>(3, "in"),
+		FFNeuronLayer<ScalarFunc::Linear>(3, "hidden"),
+		FFNeuronLayer<ScalarFunc::Linear>(2, "out")
+	};
+	auto net = NeuralNetwork::MakeNetwork(layers);
+	auto trainer = NeuralNetwork::MakeTrainer<KohonenTrainer>(layers,
+		0.1, 1e-4, 100);
 
 	constexpr int TRAINING_SETS = 6;
 	constexpr int VALIDATION_SETS = 2;
@@ -440,8 +449,6 @@ void nnKohonen() {
 		INPUT{ -1.0, 1.0, -1.0 },
 		INPUT{  1.0, 1.0,  1.0 }
 	};
-
-	KohonenTrainer trainer = KohonenTrainer(0.1, 1e-4, 100);
 
 	trainNN_Unsupervised(net, trainer, TRAINING_SETS, training,
 		INPUTS, OUTPUTS, validation, VALIDATION_SETS);

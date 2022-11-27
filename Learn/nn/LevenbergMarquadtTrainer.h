@@ -6,7 +6,8 @@
 namespace nn {
 	// Useful: https://www.codeproject.com/articles/55691/neural-network-learning-by-the-levenberg-marquardt
 	// https://en.wikipedia.org/wiki/Levenberg%E2%80%93Marquardt_algorithm#Choice_of_damping_parameter
-	class LevenbergMarquadtTrainer : public SupervisedTrainer {
+	template<typename... LayerArgs>
+	class LevenbergMarquadtTrainer : public SupervisedTrainer<LayerArgs...> {
 	private:
 		// fields set & used during training
 		// persistent for all epochs
@@ -24,18 +25,12 @@ namespace nn {
 		// 
 		double prevMse = 0;
 
-		//double learningRate
-
-		double learningRateFunc() {
-			return learningRate;
-		}
-
 	protected:
-		void initTraining(NeuralNetwork& network, int trainingSets,
+		void initTraining(FFNeuralNetwork<LayerArgs...>& network, int trainingSets,
 			double** inputSet, size_t inLength,
 			double** expOutputSet, size_t outLength)
 		override {
-			SupervisedTrainer::initTraining(network, trainingSets,
+			SupervisedTrainer<LayerArgs...>::initTraining(network, trainingSets,
 				inputSet, inLength, expOutputSet, outLength);
 
 			jacobianCols = 0;
@@ -48,21 +43,21 @@ namespace nn {
 
 			J = Eigen::MatrixXd(jacobianRows, jacobianCols);
 
-			dampingFactor = learningRate;
+			dampingFactor = this->learningRate;
 			
-			prevMse = setError.sum() / trainingSets;
+			prevMse = this->setError.sum() / trainingSets;
 		}
 
-		/*void initTrainingEpoch(NeuralNetwork& network, int trainingSets,
+		/*void initTrainingEpoch(FFNeuralNetwork<LayerArgs...>& network, int trainingSets,
 			double** inputSet, size_t inLength, double** expOutputSet, size_t outLength) 
 		override {
-			SupervisedTrainer::initTrainingEpoch(network, trainingSets,
+			SupervisedTrainer<LayerArgs...>::initTrainingEpoch(network, trainingSets,
 				inputSet, inLength, expOutputSet, outLength);
 		}*/
 
 		void cleanUp() override {}
 
-		void trainOnSet(NeuralNetwork& network,
+		void trainOnSet(FFNeuralNetwork<LayerArgs...>& network,
 			double* inputs, double* expOutputs,
 			double* buffer, double* outPtr)
 		override {
@@ -86,7 +81,7 @@ namespace nn {
 				NeuralNetwork::Layer& layer = network.getLayer(l);
 				vector<double>& weightsIn = layer.weightsIn();
 
-				inPtr -= layer.expectedInputs();
+				inPtr -= layer.totalInputs();
 
 				int inputCount = layer.inputsPerNeuron();
 				int in = 0;
@@ -130,7 +125,9 @@ namespace nn {
 						// layer's neurons' deltas dj * the weight wij connecting the two
 						// neurons for each neuron [j] in this layer.
 						layerDelta[i] += delta * weightsIn[w];
-						J(currSet, layerWeightIndex + w) = delta * inPtr[in] / setError(currSet);
+
+						double val = delta * inPtr[in] / this->setError(this->currSet);
+						J(this->currSet, layerWeightIndex + w) = val;
 						in++;
 					}
 
@@ -143,7 +140,7 @@ namespace nn {
 			} // for
 		}
 		
-		void trainOnEpoch(NeuralNetwork& network, int trainingSets, double* buffer,
+		void trainOnEpoch(FFNeuralNetwork<LayerArgs...>& network, int trainingSets, double* buffer,
 			double** inputSet, size_t inLength, double** expOutputSet, size_t outLength) {
 			// delta W = (JTJ + LI)^-1JT (Y - f(X, W))
 
@@ -152,7 +149,7 @@ namespace nn {
 
 			auto F1A = J.transpose() * J; // square matrix, size nxn
 			auto F1 = F1A + Eigen::MatrixXd::Identity(jacobianCols, jacobianCols) * dampingFactor; // square matrix, size nxn
-			auto F2 = J.transpose() * setError; // nxm * mx1 = nx1: # of weights x
+			auto F2 = J.transpose() * this->setError; // nxm * mx1 = nx1: # of weights x
 			Wd = F1.inverse() * F2; // nxn * nx1: nx1
 
 			//std::cout << "TEST F: " << F << std::endl;
@@ -185,7 +182,7 @@ namespace nn {
 
 	private:
 		template<int factor>
-		void updateWeights(NeuralNetwork& network, Eigen::VectorXd F) {
+		void updateWeights(FFNeuralNetwork<LayerArgs...>& network, Eigen::VectorXd F) {
 			int l = 0;
 			vector<double>* weightsIn = &network.getLayer(0).weightsIn();
 			int w = 0;
@@ -198,7 +195,7 @@ namespace nn {
 				}
 
 				double dW = F[i];
-				(*weightsIn)[w++] += factor * dW;
+				(*weightsIn)[w++] += this->learningRate * factor * dW;
 			}
 		}
 
@@ -206,10 +203,10 @@ namespace nn {
 		//LevenbergMarquadtTrainer(double learnRate = 0.1, double error = 0.002, int epochs = 1000)
 		//	: LevenbergMarquadtTrainer(learnRate, error, epochs, learnRate) {}
 		//LevenbergMarquadtTrainer(double learnRate, double error, int epochs, double dampingFactor)
-		//	: SupervisedTrainer(learnRate, error, epochs), dampingFactor(dampingFactor) { }
+		//	: SupervisedTrainer<LayerArgs...>(learnRate, error, epochs), dampingFactor(dampingFactor) { }
 
 
 		LevenbergMarquadtTrainer(double learnRate = 0.1, double error = 0.002, int epochs = 1000)
-			: SupervisedTrainer(learnRate, error, epochs) {}
+			: SupervisedTrainer<LayerArgs...>(learnRate, error, epochs) {}
 	};
 }
