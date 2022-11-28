@@ -11,8 +11,8 @@
 #include "DescriptionLearner.h"
 #include "ml/DLearnerListData.h"
 
-//#define SPEEDTEST_MODE
-//#define FAST_MODE
+#define SPEEDTEST_MODE
+#define FAST_MODE
 
 #include "NeuralNetwork.h"
 #include "nn/PerceptronTrainer.h"
@@ -134,15 +134,18 @@ inline void trainNN_Supervised(FFNeuralNetwork<LayerArgs...>& net, T trainer,
 	printf("### TRAINING NETWORK ###\n---------------------------\n");
 
 #ifdef SPEEDTEST_MODE
-	NeuralNetwork* newNet;
+	FFNeuralNetwork<LayerArgs...>* newNet;
 	long long avgTime = 0;
 
 	for (int i = 0; i < 100; i++) {
-		newNet = new NeuralNetwork(net);
+		newNet = new FFNeuralNetwork<LayerArgs...>(net);
 
 		auto start = chrono::high_resolution_clock::now();
 		trainer.train(*newNet, TRAINING_SETS, trainingIn, INPUTS, trainingOut, OUTPUTS);
 		auto stop = chrono::high_resolution_clock::now();
+
+		if(i != 99)
+			delete newNet;
 
 		auto time =
 			chrono::duration_cast<chrono::microseconds>(stop - start).count();
@@ -153,6 +156,8 @@ inline void trainNN_Supervised(FFNeuralNetwork<LayerArgs...>& net, T trainer,
 	printf("\n### NETWORK AFTER TRAINING ###\n---------------------------\n");
 	net.displayChange(*newNet);
 	printf("Exec time: %lldus\n", avgTime);
+
+	delete newNet;
 #else
 	FFNeuralNetwork<LayerArgs...> newNet = FFNeuralNetwork<LayerArgs...>(net);
 
