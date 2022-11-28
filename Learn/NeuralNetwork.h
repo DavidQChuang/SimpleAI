@@ -33,14 +33,26 @@ namespace nn {
 
 		template<std::size_t... Is>
 		void initLayerVector(std::index_sequence<Is...>) {
-			auto add = [&](auto& layer) {
-				nnLayers.push_back(&layer);
+			int idx = 0;
+			auto add = [&](auto* layer) {
+				nnLayers.push_back(layer);
 			};
 
-			(add(std::get<Is>(nnLayerTuple)), ...);
+			(add(&getLayer<Is>()), ...);
 		}
 
 	public:
+		FFNeuralNetwork(const FFNeuralNetwork& otherNet) 
+			: nnLayerTuple(otherNet.nnLayerTuple) {
+			nnLayers = std::vector<INeuronLayer*>();
+			ioBufferSize = otherNet.ioBufferSize;
+			inputs = otherNet.inputs;
+			outputs = otherNet.outputs;
+
+			constexpr size_t layerCount = std::tuple_size_v<NNLayerTuple>;
+			initLayerVector(std::make_index_sequence<layerCount>{});
+		}
+
 		FFNeuralNetwork(std::tuple<LayerArgs...> layerArgs)
 			: nnLayerTuple(layerArgs) {
 			constexpr size_t layerCount = std::tuple_size_v<NNLayerTuple>;
@@ -83,6 +95,11 @@ namespace nn {
 
 		inline Layer& getLayer(int i) {
 			return *nnLayers[i];
+		}
+
+		template<size_t Idx>
+		inline Layer& getLayer() {
+			return std::get<Idx>(nnLayerTuple);
 		}
 
 		inline int depth() const {

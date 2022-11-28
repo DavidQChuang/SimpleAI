@@ -1,6 +1,7 @@
 #pragma once
 
 #include "SupervisedTrainer.h"
+#include <tuple>
 
 namespace nn {
 	template<typename... LayerArgs>
