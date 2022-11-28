@@ -48,7 +48,7 @@ namespace nn {
 					layerDelta.push_back(y < 0.005 ? 0 : t / y);
 				}
 				else {
-					layerDelta.push_back(y - t);
+					layerDelta.push_back(t - y);
 				}
 			}
 
@@ -98,7 +98,7 @@ namespace nn {
 					for (int i = 0; i < inputCount; i++) {
 						int w = n * inputCount + i;
 
-						double weightDelta = -this->learningRate * delta * inPtr[in] + momentum * prevWeightDeltas[wd];
+						double weightDelta = this->learningRate * delta * inPtr[in] + momentum * prevWeightDeltas[wd];
 
 						// Each input corresponds to a neuron in the preceding layer.
 						// The next layer's delta for that neuron [i] is the sum of this

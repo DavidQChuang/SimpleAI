@@ -11,8 +11,8 @@
 #include "DescriptionLearner.h"
 #include "ml/DLearnerListData.h"
 
-#define SPEEDTEST_MODE
-#define FAST_MODE
+//#define SPEEDTEST_MODE
+//#define FAST_MODE
 
 #include "NeuralNetwork.h"
 #include "nn/PerceptronTrainer.h"
@@ -49,7 +49,9 @@ TrainingData getCSVTrainingData(const char* fname, int inputs, int outputs, bool
 	int rows = doc.GetRowCount();
 	int cols = header.size();
 
-	int trainingSets = (rows - 1) / 20;
+	const int split = 1;
+
+	int trainingSets = (rows - 1) / split;
 
 	int expOutputCols = splitOutput ? 1 : outputs;
 
@@ -61,7 +63,6 @@ TrainingData getCSVTrainingData(const char* fname, int inputs, int outputs, bool
 		new double*[trainingSets],
 		new double*[trainingSets]
 	};
-
 
 	std::minstd_rand eng(seed);
 	std::uniform_int_distribution<> dist(0, trainingSets - 1);
@@ -79,7 +80,7 @@ TrainingData getCSVTrainingData(const char* fname, int inputs, int outputs, bool
 	}
 
 	int tSet = 0;
-	for (int r = 1; r < rows, tSet < trainingSets; r+=20) {
+	for (int r = 1; r < rows, tSet < trainingSets; r+= split) {
 		std::vector<double> row = doc.GetRow<double>(r);
 
 		if (row.size() != cols)
@@ -312,13 +313,13 @@ void nnAdaline() {
 void nnBackpropagation() {
 	auto layers = std::tuple {
 		FFNeuronLayer<ScalarFunc::Linear>(2, "in"),
-		FFNeuronLayer<ScalarFunc::LeakyReLU>(32, "hidden #1"),
-		//FFNeuronLayer<ScalarFunc::Siglog>(3, "out")
-		FFVNeuronLayer<VectorFunc::Softmax>(3, "out") 
+		FFNeuronLayer<ScalarFunc::LeakyReLU>(6, "hidden #1"),
+		FFNeuronLayer<ScalarFunc::Siglog>(3, "out")
+		//FFVNeuronLayer<VectorFunc::Softmax>(3, "out") 
 	};
 	auto net = NeuralNetwork::MakeNetwork(layers);
 	auto trainer = NeuralNetwork::MakeTrainer<BackpropagationTrainer>(layers,
-		0.05, 1e-2, 100, 0);
+		0.05, 1e-5, 100, 0);
 
 	for (int l = 0; l < net.depth(); l++) {
 		NeuralNetwork::Layer& layer = net.getLayer(l);
@@ -331,7 +332,7 @@ void nnBackpropagation() {
 	constexpr int INPUTS = 2;
 	constexpr int OUTPUTS = 3;
 
-	TrainingData td = getCSVTrainingData("../files/spirals.csv", INPUTS, OUTPUTS, true);
+	TrainingData td = getCSVTrainingData("../files/spirals2.csv", INPUTS, OUTPUTS, true);
 
 	trainNN_Supervised(net, trainer, td.TrainingSets, td.InputData, INPUTS, td.OutputData, OUTPUTS);
 

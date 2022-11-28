@@ -255,7 +255,7 @@ namespace nn {
 			double mse, int e) {
 			bool failed = false;
 
-			for (int i = 0; i < trainingSets; i++) {
+			for (int i = 0; i < min(100, trainingSets); i++) {
 				double* inputs = inputSet[i];
 				double* expOutputs = expOutputSet[i];
 
