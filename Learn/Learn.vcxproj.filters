@@ -74,6 +74,9 @@
     <ClInclude Include="nn\KohonenTrainer.h">
       <Filter>Header Files\nn</Filter>
     </ClInclude>
+    <ClInclude Include="nn\AdamTrainer.h">
+      <Filter>Header Files\nn</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />

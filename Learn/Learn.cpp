@@ -313,13 +313,13 @@ void nnAdaline() {
 void nnBackpropagation() {
 	auto layers = std::tuple {
 		FFNeuronLayer<ScalarFunc::Linear>(2, "in"),
-		FFNeuronLayer<ScalarFunc::LeakyReLU>(6, "hidden #1"),
+		FFNeuronLayer<ScalarFunc::LeakyReLU>(8, "hidden #1"),
 		FFNeuronLayer<ScalarFunc::Siglog>(3, "out")
 		//FFVNeuronLayer<VectorFunc::Softmax>(3, "out") 
 	};
 	auto net = NeuralNetwork::MakeNetwork(layers);
 	auto trainer = NeuralNetwork::MakeTrainer<BackpropagationTrainer>(layers,
-		0.05, 1e-5, 100, 0);
+		0.05, 1e-4, 500, 0);
 
 	for (int l = 0; l < net.depth(); l++) {
 		NeuralNetwork::Layer& layer = net.getLayer(l);
@@ -332,7 +332,7 @@ void nnBackpropagation() {
 	constexpr int INPUTS = 2;
 	constexpr int OUTPUTS = 3;
 
-	TrainingData td = getCSVTrainingData("../files/spirals2.csv", INPUTS, OUTPUTS, true);
+	TrainingData td = getCSVTrainingData("../files/spirals3.csv", INPUTS, OUTPUTS, true);
 
 	trainNN_Supervised(net, trainer, td.TrainingSets, td.InputData, INPUTS, td.OutputData, OUTPUTS);
 

@@ -150,6 +150,7 @@
     <ClInclude Include="DescriptionLearner.h" />
     <ClInclude Include="NeuralNetwork.h" />
     <ClInclude Include="nn\AdalineTrainer.h" />
+    <ClInclude Include="nn\AdamTrainer.h" />
     <ClInclude Include="nn\BackpropagationTrainer.h" />
     <ClInclude Include="nn\KohonenTrainer.h" />
     <ClInclude Include="nn\LevenbergMarquadtTrainer.h" />

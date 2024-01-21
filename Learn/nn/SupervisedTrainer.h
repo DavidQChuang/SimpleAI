@@ -1,6 +1,9 @@
 #pragma once
 #include <cmath>
 #include <Eigen/Dense>
+#include <unordered_set>
+#include <unordered_map>
+
 #include "../NeuralNetwork.h"
 
 namespace nn {
@@ -88,6 +91,22 @@ namespace nn {
 		const int MSE_MAXC = 15;
 		const int MSE_TRAILC = 5;
 
+		void makeTrainingSetIndices(int count, std::unordered_map<int, int>& map) {
+			static std::minstd_rand eng = std::minstd_rand();
+			std::uniform_int_distribution<> dist(0, count - 1);
+
+			std::unordered_set<int> usedIndices;
+			for (int i = 0; i < count; i++) {
+				int idx;
+				do {
+					idx = dist(eng);
+				} while (usedIndices.count(idx) != 0);
+
+				usedIndices.insert(idx);
+				map.emplace(i, idx);
+			}
+		}
+
 	public:
 		void train(FFNeuralNetwork<LayerArgs...>& network, int trainingSets,
 			double** inputSet,	 size_t inLength,
@@ -109,6 +128,11 @@ namespace nn {
 			MseHist maxMse = MseHist(0, 0);
 			MseHist minMse = MseHist(0, 0);
 #endif
+
+			std::unordered_map<int, int> trainingSetIndices;
+			for (int i = 0; i < trainingSets; i++) {
+				trainingSetIndices[i] = i;
+			}
 
 			double mse = 0;
 			int e = 0;
@@ -139,7 +163,9 @@ namespace nn {
 						inputSet, inLength, expOutputSet, outLength);
 					currSet = 0;
 
-					for (int i = 0; i < trainingSets; i++) {
+					for (int n = 0; n < trainingSets; n++) {
+						int i = trainingSetIndices[n];
+
 						double* inputs = inputSet[i];
 						double* expOutputs = expOutputSet[i];
 						double* outPtr = executeOnSet(network, buffer,
@@ -166,6 +192,8 @@ namespace nn {
 
 					if (mse <= errorTarget) break;
 					else if (mse > mseMax) break;
+
+					if (e % 5 == 1) makeTrainingSetIndices(trainingSets, trainingSetIndices);
 
 #ifndef FAST_MODE
 					if (mseHistory.size() > MSE_TRAILC * 2 + MSE_MAXC) {

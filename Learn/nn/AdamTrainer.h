@@ -5,10 +5,14 @@
 
 namespace nn {
 	template<typename... LayerArgs>
-	class BackpropagationTrainer : public SupervisedTrainer<LayerArgs...> {
+	class AdamTrainer : public SupervisedTrainer<LayerArgs...> {
 	private:
 		double momentum;
 		vector<double> prevWeightDeltas;
+
+		const double b1 = 0.9;
+		const double b2 = 0.999;
+		const double ep = 1e-7;
 
 	protected:
 		void initTraining(FFNeuralNetwork<LayerArgs...>& network,
@@ -45,7 +49,7 @@ namespace nn {
 				}
 
 				if (isSoftmax) {
-					layerDelta.push_back(t / (y + 1e-7));
+					layerDelta.push_back(y < (1 / 100) ? 100 : t / y);
 				}
 				else {
 					layerDelta.push_back(t - y);
@@ -105,7 +109,7 @@ namespace nn {
 						// layer's neurons' deltas dj * the weight wij connecting the two
 						// neurons for each neuron [j] in this layer.
 						layerDelta[i] += delta * weightsIn[w];
-						if(layer.useInputs())
+						if (layer.useInputs())
 							weightsIn[w] += weightDelta;
 
 						prevWeightDeltas[wd] = weightDelta;
@@ -124,7 +128,7 @@ namespace nn {
 		}
 
 	public:
-		BackpropagationTrainer(double learnRate = 0.1, double error = 0.002, int epochs = 1000, double momentum = 0.5)
-			: SupervisedTrainer<LayerArgs...>(learnRate, error, epochs), momentum(momentum){ }
+		AdamTrainer(double learnRate = 0.1, double error = 0.002, int epochs = 1000, double momentum = 0.5)
+			: SupervisedTrainer<LayerArgs...>(learnRate, error, epochs), momentum(momentum) { }
 	};
 }
