@@ -31,8 +31,10 @@ static int seed = 0;
 
 void descriptionLearner() {
 	ml::DescriptionLearner desc;
-	desc.initialize(new ml::DLearnerListData());
+	ml::DLearnerListData* data = new ml::DLearnerListData();
+	desc.initialize(data);
 	desc.execute();
+	delete data;
 }
 
 struct TrainingData {
